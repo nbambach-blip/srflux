@@ -96,8 +96,24 @@ class VanAttaDetector:
     fs : float
         Sampling frequency [Hz].
     lag : {"chen", float}
-        ``"chen"`` selects the lag per block by the Chen criterion (recommended, and
-        essential for skin temperature). A number is a fixed lag in seconds.
+        ``"chen"`` selects the lag per block by the Chen criterion. A number is a fixed lag
+        in seconds, which is what ``period_mode="unit"`` normally wants (see below).
+    period_mode : {"fitted", "unit"}
+        ``"fitted"`` (default) reports the solved ramp period tau, giving the classical
+        flux form ``A/tau``. ``"unit"`` sets tau = 1 and reports the AMPLITUDE ALONE, so the
+        flux becomes ``rho cp z A`` and the whole ramp-duration factor is absorbed into the
+        calibration coefficient.
+
+        Use ``"unit"`` when the period is not estimable from the data -- above all on a
+        1 Hz radiometric SKIN temperature, where the fitted tau is so noisy that A/tau
+        scatters worse than A on its own. On the WES sample day the per-block tau ranged
+        15-324 s and A/tau had no skill at all against the tower (r = -0.07), while the
+        amplitude alone at a fixed 15 s lag reached r = 0.59. Pair it with a fixed lag of
+        roughly 4-20 s: the Chen criterion optimises |S3(r)|/r, which is the right target
+        for a period estimate and the wrong one when the period is being discarded (it gave
+        r = 0.01 on the same data).
+
+        In this mode ``count`` is not meaningful and is reported as 1.
     rmax_s : float
         Ceiling of the Chen lag search [s].
 
@@ -112,9 +128,13 @@ class VanAttaDetector:
 
     name = "van_atta"
 
-    def __init__(self, fs: float = 1.0, lag="chen", rmax_s: float = RMAX_S):
+    def __init__(self, fs: float = 1.0, lag="chen", period_mode: str = "fitted",
+                 rmax_s: float = RMAX_S):
+        if period_mode not in ("fitted", "unit"):
+            raise ValueError("period_mode must be 'fitted' or 'unit'")
         self.fs = float(fs)
         self.lag = lag
+        self.period_mode = period_mode
         self.rmax_s = float(rmax_s)
 
     def detect(self, v) -> RampStats:
@@ -129,11 +149,20 @@ class VanAttaDetector:
             return RampStats(0, float("nan"), float("nan"), self.name, {})
 
         A, tau_samples = solve_cubic(x, r)
-        if not (np.isfinite(A) and np.isfinite(tau_samples)) or tau_samples <= 0:
+        if not np.isfinite(A):
             return RampStats(0, float("nan"), float("nan"), self.name,
                              {"lag_s": r / self.fs})
+        extra = {"lag_s": r / self.fs, "signed_amplitude": A, "block_s": block_s,
+                 "period_mode": self.period_mode}
+
+        if self.period_mode == "unit":
+            # tau is discarded, not estimated: the amplitude alone carries the flux and the
+            # duration factor is absorbed by alpha. Report the solved tau for diagnostics.
+            extra["tau_fitted"] = tau_samples / self.fs if np.isfinite(tau_samples) else float("nan")
+            return RampStats(1, abs(A), 1.0, self.name, extra)
+
+        if not np.isfinite(tau_samples) or tau_samples <= 0:
+            return RampStats(0, float("nan"), float("nan"), self.name, extra)
         tau = tau_samples / self.fs
         count = int(round(block_s / tau)) if tau > 0 else 0
-        return RampStats(count, abs(A), tau, self.name,
-                         {"lag_s": r / self.fs, "signed_amplitude": A,
-                          "block_s": block_s})
+        return RampStats(count, abs(A), tau, self.name, extra)

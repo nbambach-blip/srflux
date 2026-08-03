@@ -127,3 +127,49 @@ def test_detectors_accept_a_prepared_block(detector):
     block = prepare_block(raw)
     assert block.ok
     assert detector.detect(block.values).valid
+
+
+# ---------------------------------------------------------------- unit-period Van Atta
+def test_unit_period_reports_amplitude_only():
+    """period_mode='unit' discards tau: the period is 1 by definition, A is unchanged."""
+    v = ramp_series(n=3600, period_s=60, amplitude=1.0)
+    fitted = VanAttaDetector(fs=1.0, lag=4.0).detect(v)
+    unit = VanAttaDetector(fs=1.0, lag=4.0, period_mode="unit").detect(v)
+    assert unit.period == 1.0
+    assert unit.amplitude == pytest.approx(fitted.amplitude)
+    assert unit.valid
+    assert unit.extra["period_mode"] == "unit"
+
+
+def test_unit_period_keeps_the_fitted_tau_for_diagnostics():
+    v = ramp_series(n=3600, period_s=60, amplitude=1.0)
+    unit = VanAttaDetector(fs=1.0, lag=4.0, period_mode="unit").detect(v)
+    assert np.isfinite(unit.extra["tau_fitted"])
+    assert unit.extra["tau_fitted"] != 1.0
+
+
+def test_unit_period_survives_an_unusable_tau():
+    """The point of the mode: a block whose tau is garbage still yields an amplitude."""
+    rng = np.random.default_rng(11)
+    v = rng.normal(0, 0.05, 1800)                 # noise, no ramp structure
+    fitted = VanAttaDetector(fs=1.0, lag=4.0).detect(v)
+    unit = VanAttaDetector(fs=1.0, lag=4.0, period_mode="unit").detect(v)
+    assert unit.valid or not np.isfinite(unit.amplitude)
+    if not fitted.valid:
+        assert unit.valid                          # unit mode recovers what fitted drops
+
+
+def test_unit_period_flux_is_amplitude_scaled():
+    """F = rho cp z A when tau = 1, so it must be linear in the amplitude."""
+    from srflux import ramp_flux
+    v1 = ramp_series(n=3600, period_s=60, amplitude=1.0)
+    v3 = ramp_series(n=3600, period_s=60, amplitude=3.0)
+    det = VanAttaDetector(fs=1.0, lag=4.0, period_mode="unit")
+    f1 = ramp_flux(det.detect(v1).amplitude, period=det.detect(v1).period, z=2.0)
+    f3 = ramp_flux(det.detect(v3).amplitude, period=det.detect(v3).period, z=2.0)
+    assert f3 / f1 == pytest.approx(3.0, rel=0.05)
+
+
+def test_period_mode_is_validated():
+    with pytest.raises(ValueError):
+        VanAttaDetector(fs=1.0, period_mode="nonsense")

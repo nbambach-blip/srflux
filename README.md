@@ -69,7 +69,24 @@ Lag selection is the whole game. A fixed 1 s lag is the textbook choice for a 20
 but **collapses on a radiometric surface temperature** — a smooth ~90 s skin-temperature
 ramp has almost no 1 s signal, and both amplitude and period go to noise. `lag="chen"`
 (default) adapts per block via the first global maximum of `|S3(r)|/r`, giving r* ≈ 2 s on
-air and ≈ 65 s on surface series. Use it unless you are reproducing a fixed-lag analysis.
+air and ≈ 65 s on surface series.
+
+**On a skin temperature, also drop the period.** `period_mode="unit"` sets τ = 1 and uses the
+amplitude alone, `F = ρ·cp·z·A`, folding the ramp duration into α. The fitted τ on a 1 Hz IRT
+is simply too noisy to divide by — on the sample day it ranged 15–324 s across blocks, and
+the classical `A/τ` had no skill at all (r = −0.07). Two changes are needed together, and
+neither works alone:
+
+| SR-VA on canopy skin | r vs tower |
+|---|---|
+| classical `A/τ`, Chen lag | −0.07 |
+| amplitude only, Chen lag | +0.01 |
+| **amplitude only, fixed 15 s lag** | **+0.59** |
+
+The Chen criterion optimises `|S3(r)|/r`, which is the right target for estimating a period
+and the wrong one once you have decided to discard it. With τ dropped, pick a fixed lag in
+the **4–20 s** band for skin temperature (1–2 s for air, whose fronts are far sharper).
+`examples/wes_one_day.ipynb` sweeps this on real data.
 
 ## Calibration: what `alpha` does and does not transfer across
 
