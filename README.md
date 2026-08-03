@@ -109,20 +109,35 @@ vineyard; ~46,000 blocks; daily ET as the energy-balance residual):
   different conditions — a single continuous campaign converges 3–5× more slowly and plateaus
   at 30–50 % error until the window spans a season.
 
-## Flux direction
+## Flux direction and stability
 
-Neither detector's amplitude is signed usefully on its own. `srflux.sign` offers, in
-increasing reliability:
+Neither detector's amplitude is signed usefully on its own. `srflux.sign` offers three
+sonic-free options plus one that needs a sonic:
 
-1. `sign_from_skewness` — pure surface renewal. A warm ramp rises gradually and collapses
-   sharply, so the increment skewness is negative. Temperature-only, no other instrument.
-   ~70–80 % correct through the daytime H → 0 transition; the flip threshold is not exactly
-   zero and benefits from site calibration.
-2. `sign_from_stability` — `−sign(zeta)`. Needs a sonic, ~98 % correct.
+1. **`sign_from_gradient(Ts, Ta)` — the surface-air temperature difference. Start here if
+   you have an IRT.** A radiometer reports two channels: the target (canopy skin) and its own
+   housing thermistor, which equilibrates with the *air* rather than the canopy. Their
+   difference `dT = Ts − Ta` is a direct thermodynamic statement about direction — surface
+   warmer than air means heat goes up — with no time-domain statistics and no second
+   instrument. Across three sites it was **80–87 % correct** with a fitted offset, and on the
+   demo day in `examples/wes_one_day.ipynb` it reached 96 % of daytime blocks and 93 %
+   including nights, where the ramp-shape conventions are weakest. `fit_gradient_offset`
+   calibrates the flip threshold (observed −0.4 to −2.7 K, since the housing is shaded or
+   radiatively loaded depending on the mount); `stability_from_gradient` turns the same dT
+   into a coarse stability class (AUC 0.72–0.85 against ζ < −0.1).
+   **Use the housing's mean temperature, never its ramps** — the body ramp amplitude sits at
+   the detector noise floor (0.014–0.021 K against 0.15–0.35 K on the target), and
+   body-ramp skewness scored ~0.59 with a polarity that was not consistent between sites.
+2. `sign_from_skewness` — ramp shape. A warm ramp rises gradually and collapses sharply, so
+   the increment skewness is negative. On **air** series this is the strongest
+   temperature-only option (92–99 %); on a **surface** temperature it is unreliable (51–88 %),
+   because skin temperature decouples from the flux direction.
+3. `sign_from_stability` — `−sign(zeta)`. Needs a sonic, ~98 % correct.
 
-On a **surface** temperature the skewness convention is unreliable (51–88 % correct versus
-92–99 % for air), because skin temperature decouples from the flux direction. If an air
-series exists, take the sign from the air and apply it to the surface channel.
+A caution the notebook demonstrates: *which* air reference you use matters as much as the
+method. On the sample day the fine-wire thermocouple at 7.5 m read 4.5 K warmer than the IRT
+housing, and referencing dT to the fine wire instead of the housing dropped the sign accuracy
+from 96 % to 30 %.
 
 ## Layout
 

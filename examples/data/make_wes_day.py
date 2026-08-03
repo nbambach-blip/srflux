@@ -9,7 +9,7 @@ Source (not public):
   output/wes_002/wes_002_fluxes_2023-2026.csv  30-min processed eddy-covariance fluxes
 
 Writes:
-  wes_2023-06-24_1hz.csv.gz    TIMESTAMP, FWT, IRT           (86,400 rows)
+  wes_2023-06-24_1hz.csv.gz    TIMESTAMP, FWT, IRT, SBT      (86,400 rows)
   wes_2023-06-24_flux30.csv    TIMESTAMP, NETRAD, G, H, LE   (48 rows)
 """
 from __future__ import annotations
@@ -25,17 +25,19 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def main() -> None:
-    # ---- 1 Hz: fine-wire thermocouple (air) and IRT canopy temperature (surface)
+    # ---- 1 Hz: fine-wire thermocouple (air), IRT target (canopy skin) and the IRT's own
+    # housing thermistor, which equilibrates with the air and supplies the sonic-free
+    # flux-direction diagnostic dT = Ts - Ta
     pf = pq.ParquetFile(os.path.join(REPO, "cache", "wes_002_irt.parquet"))
     md = pf.metadata
     rgs = [i for i in range(md.num_row_groups)
            if md.row_group(i).column(0).statistics.max >= DAY
            and md.row_group(i).column(0).statistics.min <= DAY + pd.Timedelta(days=1)]
-    hi = pd.concat([pf.read_row_group(i, columns=["TIMESTAMP", "FW", "T_CANOPY"]).to_pandas()
+    hi = pd.concat([pf.read_row_group(i, columns=["TIMESTAMP", "FW", "T_CANOPY", "T_SI111_body"]).to_pandas()
                     for i in rgs], ignore_index=True)
     hi["TIMESTAMP"] = pd.to_datetime(hi.TIMESTAMP)
     hi = hi[(hi.TIMESTAMP >= DAY) & (hi.TIMESTAMP < DAY + pd.Timedelta(days=1))]
-    hi = (hi.rename(columns={"FW": "FWT", "T_CANOPY": "IRT"})
+    hi = (hi.rename(columns={"FW": "FWT", "T_CANOPY": "IRT", "T_SI111_body": "SBT"})
             .sort_values("TIMESTAMP").reset_index(drop=True).round(3))
     hi.to_csv(os.path.join(HERE, f"wes_{DAY.date()}_1hz.csv.gz"), index=False,
               compression="gzip")

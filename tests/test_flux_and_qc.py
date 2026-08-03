@@ -147,3 +147,49 @@ def test_sign_from_stability_follows_zeta():
 
 def test_sign_from_skewness_needs_enough_samples():
     assert np.isnan(sign_from_skewness(np.zeros(10)))
+
+
+# ---------------------------------------------------------------- surface-air gradient sign
+def test_gradient_sign_follows_the_temperature_difference():
+    from srflux import sign_from_gradient
+    ts = np.array([30.0, 30.0, 18.0])          # canopy skin
+    ta = np.array([25.0, 31.0, 20.0])          # IRT housing thermistor ~ air
+    assert list(sign_from_gradient(ts, ta)) == [1.0, -1.0, -1.0]
+
+
+def test_gradient_sign_honours_the_offset():
+    from srflux import sign_from_gradient
+    ts, ta = np.array([21.0]), np.array([20.0])          # dT = +1 K
+    assert sign_from_gradient(ts, ta)[0] == 1.0          # up at zero offset
+    assert sign_from_gradient(ts, ta, offset=2.0)[0] == -1.0   # down once the bar is raised
+
+
+def test_gradient_sign_propagates_missing_values():
+    from srflux import sign_from_gradient
+    assert np.isnan(sign_from_gradient([np.nan], [20.0])[0])
+
+
+def test_fit_gradient_offset_recovers_a_shifted_threshold():
+    """A housing that reads 1.5 K cool puts the true flip point at dT = +1.5 K."""
+    from srflux import fit_gradient_offset, sign_from_gradient
+    rng = np.random.default_rng(4)
+    dt = rng.uniform(-4, 6, 800)
+    ts, ta = 20.0 + dt, np.full(dt.size, 20.0)
+    ref = np.where(dt > 1.5, 1.0, -1.0)
+    off = fit_gradient_offset(ts, ta, ref)
+    assert off == pytest.approx(1.5, abs=0.15)
+    assert (sign_from_gradient(ts, ta, off) == ref).mean() > 0.99
+
+
+def test_fit_gradient_offset_needs_data():
+    from srflux import fit_gradient_offset
+    assert np.isnan(fit_gradient_offset([1.0], [0.0], [1.0]))
+
+
+def test_stability_class_from_gradient():
+    from srflux import stability_from_gradient
+    ts = np.array([26.0, 20.2, 17.0, np.nan])
+    ta = np.full(4, 20.0)
+    cls = stability_from_gradient(ts, ta, cuts=(-1.0, 1.0))
+    assert list(cls[:3]) == ["unstable", "neutral", "stable"]
+    assert cls[3] is None
