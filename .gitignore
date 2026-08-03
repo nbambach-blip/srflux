@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.eggs/
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+.DS_Store
+.ipynb_checkpoints/
+# never commit field data or site paths
+*.h5
+*.parquet
+*.dat
+data/

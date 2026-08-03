@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+title: "srflux: surface-renewal sensible heat flux from high-rate scalar series"
+message: "If you use this software, please cite it."
+type: software
+authors:
+  - family-names: Bambach
+    given-names: Nicolas
+version: 0.1.0
+license: MIT

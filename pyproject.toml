@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "srflux"
+version = "0.1.0"
+description = "Surface-renewal sensible heat flux from high-rate scalar series: Van Atta (SR-VA) and Haar wavelet (SR-WL) ramp detectors"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Nicolas Bambach" }]
+keywords = ["surface renewal", "eddy covariance", "sensible heat flux",
+            "evapotranspiration", "micrometeorology", "van atta", "wavelet"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Atmospheric Science",
+]
+dependencies = ["numpy>=1.20", "pandas>=1.3"]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+dev = ["pytest>=7", "ruff"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "src"]
+addopts = "--doctest-modules --doctest-glob='*.md'"
+
+[tool.ruff]
+line-length = 100
