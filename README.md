@@ -27,8 +27,13 @@ fit = fit_and_score(F_wl_all_blocks, H_eddy_covariance)  # alpha, r, RMSE, bias
 H_sr = fit.apply(F_wl_all_blocks)
 ```
 
-`python examples/quickstart.py` runs the whole chain — ramps, flux, calibration, daily ET —
-on synthetic data, with no field data required.
+Two runnable examples:
+
+- **`examples/quickstart.py`** — the whole chain on synthetic data, no field data needed.
+- **`examples/wes_one_day.ipynb`** — one real day from an almond orchard (1 Hz fine-wire and
+  canopy-skin temperature, plus the tower's Rn/G/H/LE), with timeseries, ramp anatomy,
+  regression against the tower, and the energy-balance route to ET. The data ships in
+  `examples/data/` (574 KB).
 
 ## Install
 
@@ -130,7 +135,8 @@ src/srflux/
   sign.py              ramp-direction conventions
   synthetic.py         sawtooth ramp generator for tests and sanity checks
 tests/                 42 tests on signals whose answer is known by construction
-examples/quickstart.py end-to-end demo
+examples/quickstart.py     synthetic end-to-end demo
+examples/wes_one_day.ipynb one real day, with the sample data in examples/data/
 ```
 
 ## References

@@ -23,6 +23,7 @@ dependencies = ["numpy>=1.20", "pandas>=1.3"]
 [project.optional-dependencies]
 test = ["pytest>=7"]
 dev = ["pytest>=7", "ruff"]
+examples = ["matplotlib>=3.5", "jupyter"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
