@@ -117,10 +117,11 @@ SR-WL:  F = rho·cp·z · N·A / block        SR-VA:  F = rho·cp·z · A / tau
 RMSE and bias, because r cannot see a magnitude failure. When a predictor carries no
 information the through-origin fit correctly drives α towards zero — but if the flux
 *direction* is supplied from outside the calibration, predicting +ε by day and −ε at night
-still tracks the sign of the reference. In `examples/ola_one_day.ipynb` one combination
-predicts a median 1.3 W m⁻² against an observed RMS of 89, and still scores **r = 0.72**;
-its RMSE is just the RMS of the observations. NSE calls it: **−0.08**, worse than predicting
-the mean.
+still tracks the sign of the reference. While building `examples/ola_one_day.ipynb` one
+combination predicted a median 1.3 W m⁻² against an observed RMS of 89 — a flat line at zero —
+and still scored **r = 0.72**, with an RMSE equal to the RMS of the observations. NSE called
+it: **−0.08**, worse than predicting the mean. (The cause was two bad days in the calibration
+set; see the next point.)
 
 `alpha` is fitted through the origin, `alpha = Σ(F·H)/Σ(F²)`, against a reference flux —
 ideally energy-balance-closure-corrected eddy covariance — **per regime**, so the ramp
@@ -147,6 +148,13 @@ from doing it that way:
   stable for the first fortnight of May 2023 (per-day α 0.62–0.72) and degrades afterwards
   (0.04–0.50); pooling the whole month drops the air-channel correlation from 0.85 to 0.36
   through that drift alone.
+- **Screen the calibration set per day before pooling it.** A through-origin fit weights by
+  F², so one day on which the sensor is mis-scaled — amplitudes inflated while the flux is
+  normal — carries enormous leverage. Two such days out of eleven collapsed a fine-wire
+  calibration from α 0.0121 (r 0.71) to α 0.0001 (r −0.06), and made a working detector
+  configuration look impossible in a lag sweep. `make_ola_calibration.py` drops days whose own
+  α is more than 3 robust MADs from the median on a log scale, and records which in the
+  coefficient file. **Screen first, then tune.**
 
 Findings from a six-site orchard and vineyard study that used this code (three almond, three
 vineyard; ~46,000 blocks; daily ET as the energy-balance residual):

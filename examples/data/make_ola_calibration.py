@@ -21,10 +21,15 @@ known flux direction, so the sign never enters the calibration:
 Within a regime the fit is through-origin on the UNSIGNED ramp flux against |H|.
 
 The Van Atta lag is chosen by sweeping it over this calibration window, not over the demo
-day: the window prefers the Chen adaptive lag (skin r 0.38 day / 0.47 night) while the demo
-day on its own would have picked a fixed 2 s (r 0.84 there, 0.19 over the window). That gap
-is what hyperparameter selection on a held-out day is for. On the fine wire SR-VA does not
-work at this site at ANY lag (|r| < 0.1 throughout), which the notebook reports as-is.
+day: the window prefers the Chen adaptive lag while the demo day on its own would have picked
+a fixed 2 s (r 0.84 there, 0.19 over the window). That gap is what hyperparameter selection on
+a held-out set is for.
+
+A caution about the order of operations. The lag sweep above was run BEFORE the per-day screen
+below, on a window still containing two mis-scaled fine-wire days, and it concluded that SR-VA
+could not work on that channel at all (|r| < 0.1 at every lag). With the screen applied the
+same channel calibrates at r = 0.71. Screen first, then tune -- two bad days out of eleven
+were enough to make a working configuration look impossible.
 
 Writes: ola_2023-05_calibration.json
 """
@@ -90,6 +95,40 @@ def window_blocks() -> pd.DataFrame:
     return sr.join(fx.set_index("ts")).dropna(subset=["H_Wm2", "NETRAD_v3_Wm2"])
 
 
+def daily_alpha_screen(s: pd.DataFrame, key: str, k: float = 3.0, min_blocks: int = 8):
+    """Drop days whose OWN alpha is a scale outlier, and report which.
+
+    A through-origin fit weights by F^2, so a day on which the sensor is mis-scaled -- ramp
+    amplitudes inflated while the flux is normal -- carries enormous leverage and drags the
+    pooled coefficient towards zero. Two such days at the start of this window (1-2 May) were
+    enough to collapse the fine-wire calibration completely: pooled alpha 0.0001 with r =
+    -0.06, against per-day alphas of 0.011-0.015 and r 0.67-0.94 on every other day.
+
+    The screen is deliberately mild and scale-based rather than skill-based: keep days whose
+    per-day alpha sits within `k` robust MADs of the median on a log scale. It removes days
+    the instrument got wrong, not days the weather made noisy, and it typically keeps 9 of 11.
+
+    Note this uses the reference flux, which is legitimate here -- it is the calibration set,
+    where the reference is available by definition -- but it must never be applied to the day
+    being predicted.
+    """
+    per = {}
+    for day, g in s.groupby(s.index.floor("D")):
+        if len(g) < min_blocks:
+            continue
+        a = calibrate_alpha(g[key], g.H_Wm2.abs())
+        if np.isfinite(a) and a > 0:
+            per[day] = a
+    if len(per) < 4:
+        return list(per), []
+    la = np.log(np.fromiter(per.values(), float))
+    med = float(np.median(la))
+    mad = float(1.4826 * np.median(np.abs(la - med)))
+    keep = [d for d, a in per.items() if abs(np.log(a) - med) <= k * max(mad, 1e-6)]
+    dropped = [str(d.date()) for d in sorted(set(per) - set(keep))]
+    return keep, dropped
+
+
 def main() -> None:
     d = window_blocks()
     d = d[d.index.floor("D") != EXCLUDE_DAY]
@@ -107,9 +146,10 @@ def main() -> None:
                     "stable_night": "NETRAD < -20 W m-2 and H < 0, sign -1"},
         "note": ("alpha fitted through the origin on unsigned ramp flux against |H|; "
                  "apply the regime sign separately"),
-        "qc": (f"ramp amplitudes above {A_MAX_K} K rejected; window stops at 14 May because "
-               "the fine wire degrades afterwards (per-day alpha 0.62-0.72 before, "
-               "0.04-0.50 after)"),
+        "qc": (f"ramp amplitudes above {A_MAX_K} K rejected; days whose own alpha is a scale "
+               "outlier (>3 robust MADs from the median, log scale) dropped per channel and "
+               "regime -- see days_dropped; window stops at 14 May because the fine wire "
+               "degrades afterwards (per-day alpha 0.62-0.72 before, 0.04-0.50 after)"),
         "coefficients": {},
     }
     print(f"window blocks after excluding {EXCLUDE_DAY.date()}: {len(d)}")
@@ -122,16 +162,22 @@ def main() -> None:
                 s = sub.dropna(subset=[key])
                 if len(s) < 25:
                     continue
+                keep, dropped = daily_alpha_screen(s, key)
+                s = s[s.index.floor("D").isin(keep)] if keep else s
+                if len(s) < 25:
+                    continue
                 F, H = s[key].to_numpy(), s.H_Wm2.abs().to_numpy()
                 a = calibrate_alpha(F, H)
                 r = float(np.corrcoef(F, H)[0, 1])
                 rmse = float(np.sqrt(np.mean((a * F - H) ** 2)))
                 out["coefficients"][rname][key] = {
-                    "alpha": round(a, 4), "n": int(len(s)), "r": round(r, 3),
+                    "alpha": round(a, 5), "n": int(len(s)), "r": round(r, 3),
                     "rmse_Wm2": round(rmse, 1),
-                    "n_days": int(s.index.floor("D").nunique())}
-                print(f"  {rname:13s} {key:7s} alpha {a:7.3f}  r {r:+.2f}  "
-                      f"RMSE {rmse:5.1f}  n {len(s):4d}")
+                    "n_days": int(s.index.floor("D").nunique()),
+                    "days_dropped": dropped}
+                print(f"  {rname:13s} {key:7s} alpha {a:8.4f}  r {r:+.2f}  "
+                      f"RMSE {rmse:5.1f}  n {len(s):4d}"
+                      + (f"  dropped {dropped}" if dropped else ""))
 
     p = os.path.join(HERE, "ola_2023-05_calibration.json")
     with open(p, "w") as fh:

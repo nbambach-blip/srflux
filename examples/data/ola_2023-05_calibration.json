@@ -14,66 +14,94 @@
     "stable_night": "NETRAD < -20 W m-2 and H < 0, sign -1"
   },
   "note": "alpha fitted through the origin on unsigned ramp flux against |H|; apply the regime sign separately",
-  "qc": "ramp amplitudes above 3.0 K rejected; window stops at 14 May because the fine wire degrades afterwards (per-day alpha 0.62-0.72 before, 0.04-0.50 after)",
+  "qc": "ramp amplitudes above 3.0 K rejected; days whose own alpha is a scale outlier (>3 robust MADs from the median, log scale) dropped per channel and regime -- see days_dropped; window stops at 14 May because the fine wire degrades afterwards (per-day alpha 0.62-0.72 before, 0.04-0.50 after)",
   "coefficients": {
     "unstable_day": {
       "WL_FWT": {
-        "alpha": 0.4961,
-        "n": 190,
-        "r": 0.557,
-        "rmse_Wm2": 57.4,
-        "n_days": 12
+        "alpha": 0.65077,
+        "n": 159,
+        "r": 0.904,
+        "rmse_Wm2": 27.8,
+        "n_days": 9,
+        "days_dropped": [
+          "2023-05-01",
+          "2023-05-02"
+        ]
       },
       "WL_IRT": {
-        "alpha": 2.3416,
-        "n": 206,
-        "r": 0.722,
-        "rmse_Wm2": 43.9,
-        "n_days": 12
+        "alpha": 2.38624,
+        "n": 171,
+        "r": 0.724,
+        "rmse_Wm2": 42.7,
+        "n_days": 9,
+        "days_dropped": [
+          "2023-05-04",
+          "2023-05-12"
+        ]
       },
       "VA_FWT": {
-        "alpha": 0.0001,
-        "n": 192,
-        "r": -0.06,
-        "rmse_Wm2": 123.7,
-        "n_days": 12
+        "alpha": 0.01209,
+        "n": 159,
+        "r": 0.707,
+        "rmse_Wm2": 45.7,
+        "n_days": 9,
+        "days_dropped": [
+          "2023-05-01",
+          "2023-05-02"
+        ]
       },
       "VA_IRT": {
-        "alpha": 0.0154,
-        "n": 206,
-        "r": 0.384,
-        "rmse_Wm2": 73.0,
-        "n_days": 12
+        "alpha": 0.01552,
+        "n": 199,
+        "r": 0.376,
+        "rmse_Wm2": 73.8,
+        "n_days": 11,
+        "days_dropped": []
       }
     },
     "stable_night": {
       "WL_FWT": {
-        "alpha": 0.3044,
-        "n": 183,
-        "r": 0.4,
-        "rmse_Wm2": 29.3,
-        "n_days": 13
+        "alpha": 0.46488,
+        "n": 144,
+        "r": 0.616,
+        "rmse_Wm2": 21.2,
+        "n_days": 8,
+        "days_dropped": [
+          "2023-05-12",
+          "2023-05-13"
+        ]
       },
       "WL_IRT": {
-        "alpha": 2.5686,
-        "n": 209,
-        "r": 0.897,
-        "rmse_Wm2": 15.4,
-        "n_days": 13
+        "alpha": 2.70804,
+        "n": 180,
+        "r": 0.91,
+        "rmse_Wm2": 13.5,
+        "n_days": 10,
+        "days_dropped": [
+          "2023-05-12",
+          "2023-05-13"
+        ]
       },
       "VA_FWT": {
-        "alpha": 0.0008,
-        "n": 184,
-        "r": 0.044,
-        "rmse_Wm2": 47.0,
-        "n_days": 13
+        "alpha": 0.00797,
+        "n": 155,
+        "r": 0.222,
+        "rmse_Wm2": 30.8,
+        "n_days": 9,
+        "days_dropped": [
+          "2023-05-13"
+        ]
       },
       "VA_IRT": {
-        "alpha": 0.0319,
-        "n": 209,
-        "r": 0.473,
-        "rmse_Wm2": 26.5,
-        "n_days": 13
+        "alpha": 0.03638,
+        "n": 180,
+        "r": 0.592,
+        "rmse_Wm2": 23.7,
+        "n_days": 10,
+        "days_dropped": [
+          "2023-05-03",
+          "2023-05-13"
+        ]
       }
     }
   }
