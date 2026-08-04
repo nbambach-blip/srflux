@@ -34,9 +34,7 @@ from .detectors.vanatta import VanAttaDetector, chen_lag, solve_cubic
 from .flux import (AlphaFit, calibrate_alpha, daily_et, fit_and_score,
                    latent_heat_residual, ramp_flux, scores, sensible_heat)
 from .preprocess import BlockQC, detrend, increment_skewness, moving_average, prepare_block
-from .sign import (fit_gradient_offset, fit_skewness_sign, sign_from_gradient,
-                   sign_from_skewness,
-                   sign_from_stability, stability_from_gradient, surface_air_difference)
+from .sign import fit_skewness_sign, sign_from_skewness, sign_from_stability
 
 __version__ = "0.1.0"
 
@@ -44,9 +42,6 @@ __all__ = [
     "HaarDetector", "VanAttaDetector", "RampStats", "haar_kernel", "chen_lag",
     "solve_cubic", "prepare_block", "BlockQC", "moving_average", "detrend",
     "increment_skewness", "ramp_flux", "calibrate_alpha", "sensible_heat", "fit_and_score",
-    "scores",
-    "AlphaFit", "latent_heat_residual", "daily_et", "sign_from_skewness",
-    "sign_from_stability", "sign_from_gradient", "fit_gradient_offset",
-    "stability_from_gradient", "surface_air_difference", "fit_skewness_sign",
-    "__version__",
+    "AlphaFit", "latent_heat_residual", "daily_et", "scores", "sign_from_skewness",
+    "fit_skewness_sign", "sign_from_stability", "__version__",
 ]

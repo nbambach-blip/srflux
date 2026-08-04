@@ -10,12 +10,10 @@ and the total ramp period follows as ``tau = A^2 r / S2``. The root is chosen to
 sign(S3), which is what ties the amplitude to the flux direction: a warm ramp rises slowly
 and collapses sharply, giving S3 < 0.
 
-Lag selection is the whole game. A fixed 1 s lag is the textbook choice for a 20 Hz sonic,
-but it COLLAPSES on a canopy skin temperature -- a smooth ~90 s surface ramp has almost no
-1 s signal, and the fitted amplitude and period both go to noise. The Chen et al. (1997a)
-criterion adapts the lag per block by taking the first global maximum of |S3(r)|/r, and it
-recovers sensible amplitudes on both air (r* ~ 2 s) and surface (r* ~ 65 s) series. Use
-``lag="chen"`` unless you are reproducing a fixed-lag analysis.
+Lag selection matters more than anything else here. A fixed 1 s lag is the textbook choice
+for a 20 Hz sonic but collapses on a canopy skin temperature, whose ramps carry almost no
+1 s signal. The Chen et al. (1997a) criterion adapts the lag per block from the first global
+maximum of |S3(r)|/r. Sweep the lag on a calibration window rather than assuming a default.
 
 References
 ----------
@@ -105,16 +103,12 @@ class VanAttaDetector:
         calibration coefficient.
 
         Use ``"unit"`` when the period is not estimable from the data -- above all on a
-        1 Hz radiometric SKIN temperature, where the fitted tau swings by more than an order
-        of magnitude between blocks (15-324 s on one orchard day) and the division adds
-        noise instead of information. Dropping it has never been worse than keeping it on
-        the days tested, and on a day where A/tau collapsed outright (r = -0.07 against the
-        tower) the amplitude alone at a fixed 15 s lag recovered r = 0.59.
+        1 Hz radiometric skin temperature, where the fitted tau can swing by an order of
+        magnitude between blocks (15-324 s observed) so that dividing by it adds noise
+        rather than information.
 
-        Pair it with a FIXED lag rather than the Chen criterion, which optimises |S3(r)|/r --
-        the right target for estimating a period and the wrong one once the period is being
-        discarded. Sweep the lag on a few days rather than trusting one day's optimum;
-        skin channels have favoured 2-20 s and air channels 1-2 s in the records tested.
+        The lag then has to be chosen on a calibration window: the Chen criterion optimises
+        |S3(r)|/r, which targets the period you have just decided to discard.
 
         In this mode ``count`` is not meaningful and is reported as 1.
     rmax_s : float

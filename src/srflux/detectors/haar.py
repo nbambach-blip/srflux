@@ -7,16 +7,11 @@ series, and the ramp amplitude is read off as the median |coefficient| at those 
 
 Threshold. A fixed absolute threshold does not travel between sites or scalars, because the
 ramp amplitude of a canopy skin temperature is an order of magnitude smaller than that of
-air temperature. The threshold here is therefore sigma-RELATIVE: ``k * std(c)`` of the
-coefficient series itself, which makes the detector scale-free. ``k = 0.75`` is the value
-used throughout the calibration work this package comes from; ``k`` interacts with the
-count but only weakly with the amplitude.
+air temperature. The threshold is therefore sigma-RELATIVE, ``k * std(c)`` of the
+coefficient series itself, which makes the detector scale-free.
 
-Scale. A sweep over 8-128 s kernels showed a broad flat optimum at 20-48 s for reproducing
-eddy-covariance H, with 32 s at or within 0.1 % of the peak; the wavelet SHAPE matters even
-less (Haar and a first-derivative-of-Gaussian tie, and both beat symmetric or oscillatory
-kernels, which detect ramp centres rather than fronts). The defaults below are those
-optima, and neither is worth tuning per site.
+Defaults. A 32 s kernel with ``k = 0.75`` sits in a broad flat optimum (20-48 s) for
+reproducing eddy-covariance H; neither is worth tuning per site.
 
 References
 ----------

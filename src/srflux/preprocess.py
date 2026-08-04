@@ -102,12 +102,7 @@ def prepare_block(v, fs: float = 1.0, value_range=TEMP_RANGE, min_valid_frac: fl
 
 
 def increment_skewness(v, fs: float = 1.0, detrend_s: float = 180.0, lag: int = 1) -> float:
-    """Skewness of the lag-``lag`` increments of the detrended signal.
-
-    This is the quantity the ramp-direction convention is built on: a warm (upward-flux)
-    ramp rises gradually and falls sharply, which leaves the increment distribution
-    negatively skewed. See :mod:`srflux.sign`.
-    """
+    """Skewness of the lag-``lag`` increments of the detrended signal (see :mod:`srflux.sign`)."""
     d = detrend(v, detrend_s, fs)
     d = d[np.isfinite(d)]
     if len(d) < 100:

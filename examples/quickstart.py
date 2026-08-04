@@ -1,8 +1,5 @@
 #!/usr/bin/env python
-"""End-to-end example: ramps -> flux -> calibration -> daily ET, on synthetic data.
-
-Runs the whole chain both ways (SR-WL and SR-VA) against a synthetic "reference" flux, so
-it can be executed without any field data:
+"""End-to-end example on synthetic data: ramps -> flux -> calibration -> daily ET.
 
     python examples/quickstart.py
 
@@ -77,7 +74,7 @@ def main() -> None:
         print(f"{'':>18}   daily ET = {et:4.2f} mm  (reference {et_ref:4.2f} mm, "
               f"error {et - et_ref:+.2f})")
 
-    # What a borrowed calibration costs: apply an alpha that is 50 % too large.
+    # Sensitivity of daily ET to a 50 % error in alpha.
     F_wl = fluxes["haar"]
     a_local = calibrate_alpha(F_wl, H_ref)
     Rn, G = np.full_like(H_ref, 600.0), np.full_like(H_ref, 70.0)

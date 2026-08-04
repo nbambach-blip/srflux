@@ -14,7 +14,7 @@
     "stable_night": "NETRAD < -20 W m-2 and H < 0, sign -1"
   },
   "note": "alpha fitted through the origin on unsigned ramp flux against |H|; apply the regime sign separately",
-  "qc": "ramp amplitudes above 3.0 K rejected; days whose own alpha is a scale outlier (>3 robust MADs from the median, log scale) dropped per channel and regime -- see days_dropped; window stops at 14 May because the fine wire degrades afterwards (per-day alpha 0.62-0.72 before, 0.04-0.50 after)",
+  "qc": "ramp amplitudes above 3.0 K rejected; days whose own alpha is a scale outlier (>3 robust MADs from the median, log scale) dropped per channel and regime -- see days_dropped",
   "coefficients": {
     "unstable_day": {
       "WL_FWT": {

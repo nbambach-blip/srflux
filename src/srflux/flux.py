@@ -79,13 +79,10 @@ def sensible_heat(F, alpha: float, sign=1.0):
 def scores(F, reference, alpha: float) -> dict:
     """Skill of ``alpha * F`` against a reference flux.
 
-    Reports ``nse`` (Nash-Sutcliffe efficiency, ``1 - MSE/var``) alongside r, RMSE and bias,
-    because **r cannot detect a magnitude failure**. When a predictor carries no information
-    the through-origin fit correctly drives alpha towards zero -- but if the flux DIRECTION is
-    then supplied from outside the calibration, predicting +epsilon by day and -epsilon at
-    night still tracks the sign of the reference and scores a high r, while RMSE merely equals
-    the RMS of the observations. NSE exposes it: it is zero for a prediction no better than
-    the mean and negative for one that is worse.
+    Reports ``nse`` (Nash-Sutcliffe efficiency, ``1 - MSE/var``) alongside r, RMSE and bias.
+    Read NSE: r is blind to scale, so an estimate with the right shape but the wrong magnitude
+    still scores well, while NSE is zero for a prediction no better than the mean of the
+    observations and negative for one that is worse.
 
     Examples
     --------
@@ -107,10 +104,7 @@ def scores(F, reference, alpha: float) -> dict:
 
 @dataclass(frozen=True)
 class AlphaFit:
-    """Result of :func:`fit_and_score`.
-
-    ``nse`` is the one to check when a fit looks suspiciously good: see :func:`scores`.
-    """
+    """Result of :func:`fit_and_score`."""
 
     alpha: float
     n: int

@@ -1,16 +1,13 @@
 #!/usr/bin/env python
 """Fit the OLA surface-renewal calibration, for the notebook to apply to a single day.
 
-Why a 13-day window rather than a month. Alpha needs 10-21 days spread over a range of
-conditions to settle, so a fortnight is about the minimum. At this site it is also the
-maximum: the fine wire is stable from 3-12 May 2023 (per-day alpha 0.62-0.72) and degrades
-afterwards, with per-day alpha falling to 0.04-0.50 and ramp amplitudes inflating to 1 K by
-21 May. Pooling the whole month drops the air-channel correlation from 0.85 (median per-day)
-to 0.36, purely from that drift. The window here is 1-14 May, with the demo day excluded, so
-the notebook's numbers are out-of-sample.
+Publishes only the COEFFICIENTS: alpha per regime, the detector configuration they were
+fitted with, and the flux-direction convention. The archive stays where it is.
 
-Only the resulting COEFFICIENTS are published. The archive stays where it is; the repository
-ships one day.
+Window. Alpha needs 10-21 days spread over a range of conditions, so a fortnight is about
+the minimum. It is also the maximum here: the fine wire is stable through mid-May 2023 and
+drifts afterwards, and a calibration window should be bounded by sensor behaviour rather
+than by the calendar. The demo day is excluded, so the notebook is out-of-sample.
 
 Regimes. Alpha is fitted separately for convective daytime and stable nighttime, each with a
 known flux direction, so the sign never enters the calibration:
@@ -20,16 +17,16 @@ known flux direction, so the sign never enters the calibration:
 
 Within a regime the fit is through-origin on the UNSIGNED ramp flux against |H|.
 
-The Van Atta lag is chosen by sweeping it over this calibration window, not over the demo
-day: the window prefers the Chen adaptive lag while the demo day on its own would have picked
-a fixed 2 s (r 0.84 there, 0.19 over the window). That gap is what hyperparameter selection on
-a held-out set is for.
+Screening. A through-origin fit weights by F^2, so a day on which the sensor is mis-scaled
+carries enormous leverage and can drag the pooled coefficient towards zero. Days whose own
+alpha is a scale outlier are dropped per channel and regime, and recorded in the output.
+Screen before tuning anything else: an unscreened window can make a workable detector
+configuration look impossible.
 
-A caution about the order of operations. The lag sweep above was run BEFORE the per-day screen
-below, on a window still containing two mis-scaled fine-wire days, and it concluded that SR-VA
-could not work on that channel at all (|r| < 0.1 at every lag). With the screen applied the
-same channel calibrates at r = 0.71. Screen first, then tune -- two bad days out of eleven
-were enough to make a working configuration look impossible.
+Hyperparameters. The Van Atta lag and the flux-direction convention are both selected on
+this window, never on the demo day, and scored by NSE rather than agreement rate -- a
+convention can be right most of the time and still have negative skill if its errors land on
+the high-|H| blocks.
 
 Writes: ola_2023-05_calibration.json
 """
@@ -60,7 +57,7 @@ EXCLUDE_DAY = pd.Timestamp("2023-05-11")
 FS, BLOCK_S = 1.0, 1800.0
 Z = {"FWT": 10.5, "IRT": 5.5}          # sonic height / canopy height
 A_MAX_K = 3.0                          # reject implausible ramp amplitudes (spiking sensor)
-VA_LAG_S, VA_MODE = "chen", "unit"   # lag chosen on the calibration window, not the demo day
+VA_LAG_S, VA_MODE = "chen", "unit"   # lag chosen on the calibration window
 SIGN_LAGS_S = (1, 2, 3, 4, 6, 8, 10, 15, 20, 30)   # candidate increment lags for the sign
 SRC = {"FW": "FWT", "T_CANOPY": "IRT"}
 
@@ -103,19 +100,10 @@ def window_blocks() -> pd.DataFrame:
 def daily_alpha_screen(s: pd.DataFrame, key: str, k: float = 3.0, min_blocks: int = 8):
     """Drop days whose OWN alpha is a scale outlier, and report which.
 
-    A through-origin fit weights by F^2, so a day on which the sensor is mis-scaled -- ramp
-    amplitudes inflated while the flux is normal -- carries enormous leverage and drags the
-    pooled coefficient towards zero. Two such days at the start of this window (1-2 May) were
-    enough to collapse the fine-wire calibration completely: pooled alpha 0.0001 with r =
-    -0.06, against per-day alphas of 0.011-0.015 and r 0.67-0.94 on every other day.
-
-    The screen is deliberately mild and scale-based rather than skill-based: keep days whose
-    per-day alpha sits within `k` robust MADs of the median on a log scale. It removes days
-    the instrument got wrong, not days the weather made noisy, and it typically keeps 9 of 11.
-
-    Note this uses the reference flux, which is legitimate here -- it is the calibration set,
-    where the reference is available by definition -- but it must never be applied to the day
-    being predicted.
+    Keeps days whose per-day alpha sits within `k` robust MADs of the median on a log scale:
+    mild and scale-based, so it removes days the instrument got wrong rather than days the
+    weather made noisy. It uses the reference flux, available by definition on a calibration
+    set, but must never be applied to the day being predicted.
     """
     per = {}
     for day, g in s.groupby(s.index.floor("D")):
@@ -153,8 +141,7 @@ def main() -> None:
                  "apply the regime sign separately"),
         "qc": (f"ramp amplitudes above {A_MAX_K} K rejected; days whose own alpha is a scale "
                "outlier (>3 robust MADs from the median, log scale) dropped per channel and "
-               "regime -- see days_dropped; window stops at 14 May because the fine wire "
-               "degrades afterwards (per-day alpha 0.62-0.72 before, 0.04-0.50 after)"),
+               "regime -- see days_dropped"),
         "coefficients": {},
     }
     print(f"window blocks after excluding {EXCLUDE_DAY.date()}: {len(d)}")
@@ -185,9 +172,6 @@ def main() -> None:
                       + (f"  dropped {dropped}" if dropped else ""))
 
     # ---- flux direction: choose (lag, tau) per channel on this window, scored by NSE ----
-    # Agreement rate is the wrong objective: a convention can be right 81 % of the time and
-    # still have negative skill if its errors land on the high-|H| blocks. NSE weights each
-    # mistake by what it costs.
     out["sign"] = {}
     d = d.assign(regime=np.where(d.NETRAD_v3_Wm2 > 50, "unstable_day",
                         np.where(d.NETRAD_v3_Wm2 < -20, "stable_night",
