@@ -30,15 +30,20 @@ H_sr = fit.apply(F_wl_all_blocks)
 Two runnable examples:
 
 - **`examples/quickstart.py`** — the whole chain on synthetic data, no field data needed.
-- **`examples/wes_one_day.ipynb`** — one real day from an almond orchard, 6 July 2023: a
-  **traditional, non-advective** case (H upward by day at +140 W m⁻² median, weakly downward
-  at night at −4, Bowen 0.53, closure 1.04, 47 of 48 blocks complete). Two fine wires, the
-  IRT target and its housing thermistor at 1 Hz, plus the tower's Rn/G/H/LE. The calibration
-  is **not fitted on the day**: α comes from the other 30 days of July 2023
-  (`wes_2023-07_calibration.json`, regime-specific), so every number is out-of-sample.
-  Covers ramp anatomy, the uncalibrated flux, the month-calibrated flux day and night, the
-  Van Atta lag sweep, flux direction, and the energy-balance route to ET. Data ships in
-  `examples/data/` (~850 KB).
+- **`examples/ola_one_day.ipynb`** — one real day from an almond orchard, 11 May 2023: a
+  **traditional, non-advective** case with all 48 blocks complete (H upward by day at
+  +105 W m⁻² median, downward at night at −34 with the nocturnal layer still *coupled* at
+  u\* 0.21 m s⁻¹, Bowen 0.32, closure 1.03). A fine-wire thermocouple, the IRT target and its
+  housing thermistor at 1 Hz, plus the tower's Rn/G/H/LE. The calibration is **not fitted on
+  the day**: α comes from 1–14 May 2023 with the day excluded
+  (`ola_2023-05_calibration.json`, regime-specific), so every number is out-of-sample.
+  Covers ramp anatomy, the uncalibrated flux, the calibrated flux day and night, the Van Atta
+  lag sweep, flux direction, and the energy-balance route to ET. Data ships in
+  `examples/data/` (~680 KB).
+
+  Headline out-of-sample result: SR-WL reproduces the tower's H over 24 hours with
+  **r = 0.92 and RMSE ≈ 34 W m⁻² on both the air and the skin channel**, giving daily ET of
+  5.31 mm (skin) against 5.33 for the EC residual.
 
 **Timestamp convention.** Throughout this package a timestamp labels the **start** of its
 averaging period: a block stamped 12:00 covers 12:00–12:30. `pd.Grouper(freq="30min")` is
@@ -88,17 +93,18 @@ amplitude alone, `F = ρ·cp·z·A`, folding the ramp duration into α. The fitt
 swings by more than an order of magnitude between blocks (15–324 s on one orchard day), so
 dividing by it adds noise rather than information. Two days from the same record:
 
-| SR-VA on canopy skin | 6 Jul 2023 | 17 May 2026 | 9 Jul 2025 | 24 Jun 2023 |
-|---|---|---|---|---|
-| classical `A/τ`, Chen lag | +0.13 | +0.59 | +0.69 | **−0.07** |
-| amplitude only, Chen lag | **+0.65** | +0.71 | +0.70 | +0.01 |
-| amplitude only, fixed short lag | +0.65 | **+0.78** (4 s) | **+0.78** (2 s) | **+0.59** (15 s) |
+| SR-VA on canopy skin, one day each | OLA 11 May 23 | 6 Jul 23 | 17 May 26 | 9 Jul 25 | 24 Jun 23 |
+|---|---|---|---|---|---|
+| classical `A/τ`, Chen lag | +0.16 | +0.13 | +0.59 | +0.69 | **−0.07** |
+| amplitude only, Chen lag | **+0.75** | +0.65 | +0.71 | +0.70 | +0.01 |
+| amplitude only, fixed short lag | **+0.84** (2 s) | +0.65 | +0.78 (4 s) | +0.78 (2 s) | +0.59 (15 s) |
 
 Dropping the period was never worse than keeping it, and on the bad day it was the
 difference between failure and a usable estimate. Pair it with a **fixed** lag rather than
 the Chen criterion, which optimises `|S3(r)|/r` — the right target for estimating a period,
 the wrong one once you have decided to discard it. Sweep the lag on a few days rather than
-trusting one day's optimum; `examples/wes_one_day.ipynb` shows the sweep.
+trusting one day's optimum; `examples/ola_one_day.ipynb` shows the sweep and why the
+single-day peak is misleading.
 
 ## Calibration: what `alpha` does and does not transfer across
 
@@ -110,7 +116,7 @@ SR-WL:  F = rho·cp·z · N·A / block        SR-VA:  F = rho·cp·z · A / tau
 `alpha` is fitted through the origin, `alpha = Σ(F·H)/Σ(F²)`, against a reference flux —
 ideally energy-balance-closure-corrected eddy covariance — **per regime**, so the ramp
 direction never enters the calibration and a coefficient fitted on daytime convection is not
-applied to the weak nocturnal flux. `examples/data/make_wes_calibration.py` shows the
+applied to the weak nocturnal flux. `examples/data/make_ola_calibration.py` shows the
 pattern: fit on a month, publish only the coefficients, apply them elsewhere. Two warnings
 from doing it that way:
 
@@ -118,14 +124,20 @@ from doing it that way:
   period mode from the calibration file rather than setting them at the call site; applying
   coefficients fitted with one SR-VA configuration to fluxes computed with another gave an α
   ratio ~50× wrong before it was caught.
-- **How well a month transfers depends on how typical the day is.** On the notebook's
-  traditional day the month α is within 15–20 % of the day's own and the out-of-sample RMSE is
-  27 W m⁻² (air) and 43 (skin) over 24 hours. On an advective day from the same record the
-  day's own α is 1.5–3.7× the month value, and the month coefficient roughly doubles the
-  half-hourly RMSE.
-- **Split the calibration by regime.** At this site the nocturnal α is about half the daytime
-  value, so a single all-day coefficient over-estimates the weak night flux — but in an
-  advective month the two came out nearly equal, so the ratio is not a constant of the method.
+- **How well a calibration transfers depends on how typical the day is.** On the notebook's
+  day the borrowed α is within 0–27 % of the day's own (skin: 1.00 by day, 1.27 at night). On
+  an advective day at another site the day's own α was 1.5–3.7× the calibration value, and
+  using the borrowed coefficient roughly doubled the half-hourly RMSE.
+- **Split the calibration by regime.** The day/night ratio is site- and season-specific: at
+  one site the nocturnal α is half the daytime value, at another slightly larger, at a third
+  nearly equal. Fit both rather than assuming.
+- **Choose hyperparameters on the calibration window, never on the demo day.** The notebook's
+  lag sweep peaks at 2 s on its single day (r 0.84) but at the Chen adaptive lag over the
+  13-day window (0.38 vs 0.19 for 2 s). The published coefficients use the window's choice.
+- **Watch for sensor drift bounding the calibration window.** At this site the fine wire is
+  stable for the first fortnight of May 2023 (per-day α 0.62–0.72) and degrades afterwards
+  (0.04–0.50); pooling the whole month drops the air-channel correlation from 0.85 to 0.36
+  through that drift alone.
 
 Findings from a six-site orchard and vineyard study that used this code (three almond, three
 vineyard; ~46,000 blocks; daily ET as the energy-balance residual):
@@ -164,11 +176,12 @@ sonic-free options plus one that needs a sonic:
    difference `dT = Ts − Ta` is a direct thermodynamic statement about direction — surface
    warmer than air means heat goes up — with no time-domain statistics and no second
    instrument. Across three sites it was **80–87 % correct** with a fitted offset, against
-   61–78 % for the ramp skewness of the same skin temperature. **But it fails at an
-   irrigated orchard**: the transpiring canopy sits 1–4 K below air through the middle of the
-   day while the tower measures an upward flux, and dT is right in 17–44 % of daytime blocks
-   across four days spanning 2023–2026. It looked 96 % correct on one of them only because
-   the housing thermistor was reading 3.9 K low that year. The radiometer and the flux footprint are not seeing the same surface. `fit_gradient_offset`
+   61–78 % for the ramp skewness of the same skin temperature. **Its daytime skill varies enormously between sites**: 64–73 % in the
+   notebook (where canopy, air and housing sit within 0.1 K of each other, so dT is the sign
+   of a near-zero difference) but 100 % at night there, against 17–44 % at a second orchard
+   whose transpiring canopy runs 1–4 K below air while the tower still measures an upward
+   flux. At that second site it once looked 96 % correct — only because the housing thermistor
+   was reading 3.9 K low that year. The radiometer and the flux footprint are not seeing the same surface. `fit_gradient_offset`
    calibrates the flip threshold (observed −0.4 to −2.7 K, since the housing is shaded or
    radiatively loaded depending on the mount); `stability_from_gradient` turns the same dT
    into a coarse stability class (AUC 0.72–0.85 against ζ < −0.1).
@@ -201,7 +214,7 @@ src/srflux/
   synthetic.py         sawtooth ramp generator for tests and sanity checks
 tests/                 42 tests on signals whose answer is known by construction
 examples/quickstart.py     synthetic end-to-end demo
-examples/wes_one_day.ipynb one real day, with the sample data in examples/data/
+examples/ola_one_day.ipynb one real day, with the sample data in examples/data/
 ```
 
 ## References

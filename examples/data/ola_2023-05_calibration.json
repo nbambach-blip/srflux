@@ -1,0 +1,80 @@
+{
+  "site": "OLA_001 (almond orchard)",
+  "fit_period": "2023-05-01 to 2023-05-14",
+  "excluded_day": "2023-05-11",
+  "block_minutes": 30,
+  "heights_m": {
+    "FWT": 10.5,
+    "IRT": 5.5
+  },
+  "va_lag_s": "chen",
+  "va_period_mode": "unit",
+  "regimes": {
+    "unstable_day": "NETRAD > 50 W m-2 and H > 0, sign +1",
+    "stable_night": "NETRAD < -20 W m-2 and H < 0, sign -1"
+  },
+  "note": "alpha fitted through the origin on unsigned ramp flux against |H|; apply the regime sign separately",
+  "qc": "ramp amplitudes above 3.0 K rejected; window stops at 14 May because the fine wire degrades afterwards (per-day alpha 0.62-0.72 before, 0.04-0.50 after)",
+  "coefficients": {
+    "unstable_day": {
+      "WL_FWT": {
+        "alpha": 0.4961,
+        "n": 190,
+        "r": 0.557,
+        "rmse_Wm2": 57.4,
+        "n_days": 12
+      },
+      "WL_IRT": {
+        "alpha": 2.3416,
+        "n": 206,
+        "r": 0.722,
+        "rmse_Wm2": 43.9,
+        "n_days": 12
+      },
+      "VA_FWT": {
+        "alpha": 0.0001,
+        "n": 192,
+        "r": -0.06,
+        "rmse_Wm2": 123.7,
+        "n_days": 12
+      },
+      "VA_IRT": {
+        "alpha": 0.0154,
+        "n": 206,
+        "r": 0.384,
+        "rmse_Wm2": 73.0,
+        "n_days": 12
+      }
+    },
+    "stable_night": {
+      "WL_FWT": {
+        "alpha": 0.3044,
+        "n": 183,
+        "r": 0.4,
+        "rmse_Wm2": 29.3,
+        "n_days": 13
+      },
+      "WL_IRT": {
+        "alpha": 2.5686,
+        "n": 209,
+        "r": 0.897,
+        "rmse_Wm2": 15.4,
+        "n_days": 13
+      },
+      "VA_FWT": {
+        "alpha": 0.0008,
+        "n": 184,
+        "r": 0.044,
+        "rmse_Wm2": 47.0,
+        "n_days": 13
+      },
+      "VA_IRT": {
+        "alpha": 0.0319,
+        "n": 209,
+        "r": 0.473,
+        "rmse_Wm2": 26.5,
+        "n_days": 13
+      }
+    }
+  }
+}
