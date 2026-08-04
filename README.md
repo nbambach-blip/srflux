@@ -30,10 +30,17 @@ H_sr = fit.apply(F_wl_all_blocks)
 Two runnable examples:
 
 - **`examples/quickstart.py`** — the whole chain on synthetic data, no field data needed.
-- **`examples/wes_one_day.ipynb`** — one real day from an almond orchard (1 Hz fine-wire and
-  canopy-skin temperature, plus the tower's Rn/G/H/LE), with timeseries, ramp anatomy,
-  regression against the tower, and the energy-balance route to ET. The data ships in
-  `examples/data/` (574 KB).
+- **`examples/wes_one_day.ipynb`** — one real day from an almond orchard (1 Hz fine-wire,
+  canopy-skin and sensor-body temperature, plus the tower's Rn/G/H/LE), with timeseries, ramp
+  anatomy, regression against the tower, the radiometer-only flux direction, and the
+  energy-balance route to ET. The data ships in `examples/data/` (692 KB).
+
+**Timestamp convention.** Throughout this package a timestamp labels the **start** of its
+averaging period: a block stamped 12:00 covers 12:00–12:30. `pd.Grouper(freq="30min")` is
+left-labelled and left-closed and therefore joins directly to flux tables written the same
+way. If your reference fluxes are labelled by the *end* of the period — the Campbell
+`Average()` default for slow tables — shift them by one block before joining, or every ramp
+estimate will be paired with the previous half hour.
 
 ## Install
 
