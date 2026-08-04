@@ -113,6 +113,15 @@ SR-WL:  F = rho·cp·z · N·A / block        SR-VA:  F = rho·cp·z · A / tau
         H = alpha · F
 ```
 
+**Score with NSE, not r.** `srflux.scores` reports Nash–Sutcliffe efficiency alongside r,
+RMSE and bias, because r cannot see a magnitude failure. When a predictor carries no
+information the through-origin fit correctly drives α towards zero — but if the flux
+*direction* is supplied from outside the calibration, predicting +ε by day and −ε at night
+still tracks the sign of the reference. In `examples/ola_one_day.ipynb` one combination
+predicts a median 1.3 W m⁻² against an observed RMS of 89, and still scores **r = 0.72**;
+its RMSE is just the RMS of the observations. NSE calls it: **−0.08**, worse than predicting
+the mean.
+
 `alpha` is fitted through the origin, `alpha = Σ(F·H)/Σ(F²)`, against a reference flux —
 ideally energy-balance-closure-corrected eddy covariance — **per regime**, so the ramp
 direction never enters the calibration and a coefficient fitted on daytime convection is not

@@ -76,15 +76,48 @@ def sensible_heat(F, alpha: float, sign=1.0):
     return np.asarray(sign, float) * alpha * np.asarray(F, float)
 
 
+def scores(F, reference, alpha: float) -> dict:
+    """Skill of ``alpha * F`` against a reference flux.
+
+    Reports ``nse`` (Nash-Sutcliffe efficiency, ``1 - MSE/var``) alongside r, RMSE and bias,
+    because **r cannot detect a magnitude failure**. When a predictor carries no information
+    the through-origin fit correctly drives alpha towards zero -- but if the flux DIRECTION is
+    then supplied from outside the calibration, predicting +epsilon by day and -epsilon at
+    night still tracks the sign of the reference and scores a high r, while RMSE merely equals
+    the RMS of the observations. NSE exposes it: it is zero for a prediction no better than
+    the mean and negative for one that is worse.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> H = np.r_[np.full(10, 150.0), np.full(10, -50.0)]     # day, then night
+    >>> F = np.sign(H) * 1e-4                                 # right sign, no magnitude
+    >>> sc = scores(F, H, 1.0)
+    >>> bool(sc["r"] > 0.99), bool(sc["nse"] < 0)
+    (True, True)
+    """
+    F = np.asarray(F, float)
+    H = np.asarray(reference, float)
+    e = alpha * F - H
+    var = float(np.var(H))
+    return dict(rmse=float(np.sqrt(np.mean(e ** 2))), mbe=float(np.mean(e)),
+                r=float(np.corrcoef(F, H)[0, 1]) if len(F) > 2 else float("nan"),
+                nse=float(1.0 - np.mean(e ** 2) / var) if var > 0 else float("nan"))
+
+
 @dataclass(frozen=True)
 class AlphaFit:
-    """Result of :func:`fit_and_score`."""
+    """Result of :func:`fit_and_score`.
+
+    ``nse`` is the one to check when a fit looks suspiciously good: see :func:`scores`.
+    """
 
     alpha: float
     n: int
     r: float
     rmse: float
     mbe: float
+    nse: float = float("nan")
 
     def apply(self, F, sign=1.0):
         """Calibrated flux for new blocks."""
@@ -97,11 +130,8 @@ def fit_and_score(F, reference) -> AlphaFit:
     H = np.asarray(reference, float)
     m = np.isfinite(F) & np.isfinite(H)
     a = calibrate_alpha(F[m], H[m])
-    est = a * F[m]
-    err = est - H[m]
-    r = float(np.corrcoef(F[m], H[m])[0, 1]) if m.sum() > 2 else float("nan")
-    return AlphaFit(a, int(m.sum()), r, float(np.sqrt(np.mean(err ** 2))),
-                    float(np.mean(err)))
+    sc = scores(F[m], H[m], a)
+    return AlphaFit(a, int(m.sum()), sc["r"], sc["rmse"], sc["mbe"], sc["nse"])
 
 
 def latent_heat_residual(net_radiation, ground_heat, sensible):

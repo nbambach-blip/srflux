@@ -193,3 +193,38 @@ def test_stability_class_from_gradient():
     cls = stability_from_gradient(ts, ta, cuts=(-1.0, 1.0))
     assert list(cls[:3]) == ["unstable", "neutral", "stable"]
     assert cls[3] is None
+
+
+# ---------------------------------------------------------------- NSE catches a collapsed fit
+def test_nse_is_negative_for_a_near_zero_prediction():
+    """The failure r cannot see: a prediction of ~0 whose SIGN follows the truth.
+
+    This is not hypothetical -- it is what an uninformative predictor produces once the flux
+    direction is supplied from outside the calibration. r stays high, RMSE equals the RMS of
+    the observations, and only NSE reveals that nothing is being predicted.
+    """
+    from srflux.flux import scores
+    rng = np.random.default_rng(21)
+    H = np.r_[rng.uniform(50, 200, 40), rng.uniform(-80, -20, 40)]   # day then night
+    F = np.sign(H) * 1e-4                                            # right sign, no magnitude
+    sc = scores(F, H, 1.0)
+    assert sc["r"] > 0.8                       # correlation is fooled
+    assert sc["rmse"] == pytest.approx(np.sqrt(np.mean(H ** 2)), rel=0.01)
+    assert sc["nse"] < 0                       # NSE is not
+
+
+def test_nse_is_high_for_a_good_fit():
+    rng = np.random.default_rng(22)
+    F = rng.uniform(5, 60, 500)
+    H = 2.0 * F + rng.normal(0, 5, F.size)
+    fit = fit_and_score(F, H)
+    assert fit.nse > 0.9
+    assert fit.nse <= 1.0
+
+
+def test_nse_of_the_mean_prediction_is_zero():
+    rng = np.random.default_rng(23)
+    H = rng.normal(100, 40, 300)
+    F = np.full(H.size, H.mean())
+    from srflux.flux import scores
+    assert scores(F, H, 1.0)["nse"] == pytest.approx(0.0, abs=1e-9)
