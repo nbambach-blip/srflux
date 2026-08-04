@@ -104,5 +104,23 @@
         ]
       }
     }
+  },
+  "sign": {
+    "FWT": {
+      "source": "skewness",
+      "channel": "FWT",
+      "lag_s": 3.0,
+      "tau": 0.2605,
+      "window_nse": 0.365,
+      "window_agreement": 0.912
+    },
+    "IRT": {
+      "source": "skewness",
+      "channel": "IRT",
+      "lag_s": 3.0,
+      "tau": -0.0352,
+      "window_nse": 0.678,
+      "window_agreement": 0.859
+    }
   }
 }

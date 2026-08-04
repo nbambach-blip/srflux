@@ -51,15 +51,56 @@ SKEW_TAU = 0.0
 
 
 def sign_from_skewness(v, fs: float = 1.0, tau: float = SKEW_TAU,
-                       detrend_s: float = 180.0) -> float:
+                       detrend_s: float = 180.0, lag_s: float = 1.0) -> float:
     """Ramp direction from the increment skewness of the scalar itself.
 
     Returns +1 (upward flux), -1 (downward) or nan when the block is too short.
+
+    ``lag_s`` is not a detail. The increment lag must match the timescale of the fronts in
+    the signal, and the default of 1 s is right only for a fast air sensor. On a radiometric
+    SKIN temperature, whose ramps are an order of magnitude slower, lag-1 increments sample
+    noise: over a fortnight at one orchard the skin skewness agreed with the flux direction
+    76 % of the time at 1 s and 88-90 % at 4-8 s, and the day/night medians separate only at
+    the longer lags (-0.27 / +0.21 at 15 s against -0.06 / +0.01 at 1 s). A skin channel that
+    looks like it carries no direction information at all usually just needs a longer lag.
+
+    Choose ``lag_s`` and ``tau`` together on a calibration window -- see
+    :func:`fit_skewness_sign` -- never on the block you are predicting.
     """
-    sk = increment_skewness(v, fs=fs, detrend_s=detrend_s)
+    sk = increment_skewness(v, fs=fs, detrend_s=detrend_s,
+                            lag=max(1, int(round(lag_s * fs))))
     if not np.isfinite(sk):
         return float("nan")
     return 1.0 if sk < tau else -1.0
+
+
+def fit_skewness_sign(blocks, reference, fs: float = 1.0, detrend_s: float = 180.0,
+                      lags_s=(1, 2, 3, 4, 6, 8, 10, 15, 20, 30), n_tau: int = 81):
+    """Choose the increment lag and flip threshold together on a calibration set.
+
+    ``blocks`` is a sequence of prepared 1 Hz blocks and ``reference`` the matching measured
+    fluxes. Returns ``(lag_s, tau, accuracy)`` maximising agreement with ``sign(reference)``.
+
+    Fit on days you are not scoring. The two parameters interact -- the best threshold shifts
+    with the lag -- so sweeping them jointly matters; and the optimum is channel-specific
+    (2-4 s for a fine wire, 3-8 s for a skin temperature in the records tested).
+    """
+    ref = np.sign(np.asarray(reference, float))
+    prepared = [np.asarray(b, float) for b in blocks]
+    best = (float("nan"), float("nan"), -np.inf)
+    for lag_s in lags_s:
+        lag = max(1, int(round(lag_s * fs)))
+        sk = np.array([increment_skewness(b, fs=fs, detrend_s=detrend_s, lag=lag)
+                       for b in prepared])
+        m = np.isfinite(sk) & np.isfinite(ref) & (ref != 0)
+        if m.sum() < 30:
+            continue
+        lo, hi = np.nanpercentile(sk[m], [2, 98])
+        for tau in np.linspace(lo, hi, n_tau):
+            acc = float(np.mean(np.where(sk[m] < tau, 1.0, -1.0) == ref[m]))
+            if acc > best[2]:
+                best = (float(lag_s), float(tau), acc)
+    return best
 
 
 def surface_air_difference(ts, ta) -> np.ndarray:

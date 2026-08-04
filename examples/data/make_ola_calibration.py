@@ -46,7 +46,8 @@ import pandas as pd
 
 sys.path.insert(0, "/Users/nbambach/srflux/src")
 from srflux import (HaarDetector, VanAttaDetector, calibrate_alpha, prepare_block,  # noqa: E402
-                    ramp_flux)
+                    ramp_flux, scores)
+from srflux.preprocess import increment_skewness  # noqa: E402
 
 VOL = "/Volumes/JorgensenBambachLabData"
 IRT_H5 = os.environ.get("OLA_IRT_H5", f"{VOL}/ec_cache/ola_001_irt.h5")
@@ -60,6 +61,7 @@ FS, BLOCK_S = 1.0, 1800.0
 Z = {"FWT": 10.5, "IRT": 5.5}          # sonic height / canopy height
 A_MAX_K = 3.0                          # reject implausible ramp amplitudes (spiking sensor)
 VA_LAG_S, VA_MODE = "chen", "unit"   # lag chosen on the calibration window, not the demo day
+SIGN_LAGS_S = (1, 2, 3, 4, 6, 8, 10, 15, 20, 30)   # candidate increment lags for the sign
 SRC = {"FW": "FWT", "T_CANOPY": "IRT"}
 
 
@@ -81,6 +83,9 @@ def window_blocks() -> pd.DataFrame:
                 qc = prepare_block(np.asarray(fi[src][key][:], float), fs=FS)
                 if not qc.ok:
                     continue
+                for lag in SIGN_LAGS_S:
+                    row[f"sk{lag}_{name}"] = increment_skewness(
+                        qc.values, fs=FS, lag=max(1, int(round(lag * FS))))
                 rw, rv = wl.detect(qc.values), va.detect(qc.values)
                 if rw.valid and rw.amplitude <= A_MAX_K:
                     row[f"WL_{name}"] = ramp_flux(rw.amplitude, count=rw.count, z=Z[name],
@@ -178,6 +183,42 @@ def main() -> None:
                 print(f"  {rname:13s} {key:7s} alpha {a:8.4f}  r {r:+.2f}  "
                       f"RMSE {rmse:5.1f}  n {len(s):4d}"
                       + (f"  dropped {dropped}" if dropped else ""))
+
+    # ---- flux direction: choose (lag, tau) per channel on this window, scored by NSE ----
+    # Agreement rate is the wrong objective: a convention can be right 81 % of the time and
+    # still have negative skill if its errors land on the high-|H| blocks. NSE weights each
+    # mistake by what it costs.
+    out["sign"] = {}
+    d = d.assign(regime=np.where(d.NETRAD_v3_Wm2 > 50, "unstable_day",
+                        np.where(d.NETRAD_v3_Wm2 < -20, "stable_night",
+                        np.where(d.NETRAD_v3_Wm2 > 0, "unstable_day", "stable_night"))))
+    for name in ("FWT", "IRT"):
+        akey = f"WL_{name}"
+        alpha = np.array([out["coefficients"][r].get(akey, {}).get("alpha", np.nan)
+                          for r in d.regime])
+        best = None
+        for lag in SIGN_LAGS_S:
+            sk = d.get(f"sk{lag}_{name}")
+            if sk is None:
+                continue
+            fin = np.isfinite(sk) & np.isfinite(alpha) & np.isfinite(d[akey])
+            if fin.sum() < 100:
+                continue
+            lo, hi = np.nanpercentile(sk[fin], [2, 98])
+            for tau in np.linspace(lo, hi, 81):
+                sgn = np.where(sk < tau, 1.0, -1.0)
+                est = (sgn * alpha * d[akey])[fin]
+                sc = scores(est, d.H_Wm2[fin], 1.0)
+                acc = float(np.mean(sgn[fin] == np.sign(d.H_Wm2[fin])))
+                if best is None or sc["nse"] > best["window_nse"]:
+                    best = {"source": "skewness", "channel": name, "lag_s": float(lag),
+                            "tau": round(float(tau), 4),
+                            "window_nse": round(sc["nse"], 3),
+                            "window_agreement": round(acc, 3)}
+        if best:
+            out["sign"][name] = best
+            print(f"  sign {name}: skewness lag {best['lag_s']:.0f} s tau {best['tau']:+.3f} "
+                  f"-> window NSE {best['window_nse']:+.2f}, agree {100*best['window_agreement']:.0f}%")
 
     p = os.path.join(HERE, "ola_2023-05_calibration.json")
     with open(p, "w") as fh:

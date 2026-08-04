@@ -41,9 +41,12 @@ Two runnable examples:
   lag sweep, flux direction, and the energy-balance route to ET. Data ships in
   `examples/data/` (~680 KB).
 
-  Headline out-of-sample result: SR-WL reproduces the tower's H over 24 hours with
-  **r = 0.92 and RMSE ≈ 34 W m⁻² on both the air and the skin channel**, giving daily ET of
-  5.31 mm (skin) against 5.33 for the EC residual.
+  Headline out-of-sample result, with α, the detector configuration and the flux-direction
+  convention all fitted on other days: SR-WL reproduces the tower's H over 24 hours with
+  **NSE 0.88 / RMSE 29 W m⁻² (air)** and **NSE 0.81 / RMSE 37 (skin)**, giving daily ET of
+  5.31 and 5.40 mm against 5.33 for the EC residual. Nothing in the estimate is fitted on the
+  day being scored, and the direction is temperature-only — net radiation selects which
+  coefficient applies, but does not decide which way the heat goes.
 
 **Timestamp convention.** Throughout this package a timestamp labels the **start** of its
 averaging period: a block stamped 12:00 covers 12:00–12:30. `pd.Grouper(freq="30min")` is
@@ -205,10 +208,15 @@ sonic-free options plus one that needs a sonic:
    **Use the housing's mean temperature, never its ramps** — the body ramp amplitude sits at
    the detector noise floor (0.014–0.021 K against 0.15–0.35 K on the target), and
    body-ramp skewness scored ~0.59 with a polarity that was not consistent between sites.
-2. `sign_from_skewness` — ramp shape. A warm ramp rises gradually and collapses sharply, so
-   the increment skewness is negative. On **air** series this is the strongest
-   temperature-only option (92–99 %); on a **surface** temperature it is unreliable (51–88 %),
-   because skin temperature decouples from the flux direction.
+2. `sign_from_skewness` — ramp shape, and the one the example notebook uses. A warm ramp
+   rises gradually and collapses sharply, so the increment skewness is negative.
+   **Fit the increment lag and the flip threshold together on a calibration window**
+   (`fit_skewness_sign`); neither default is safe. The 1 s default suits a fine wire but
+   samples noise on a slow skin temperature — at one orchard the skin channel scored 76 % at
+   1 s and 88–90 % at 4–8 s, and its day/night medians separate only at the longer lags. A
+   skin channel that appears to carry no direction information usually just needs a longer
+   lag. The fitted air threshold at that site came out at +0.26 to +0.33, matching an
+   independent three-site calibration of ~0.30.
 3. `sign_from_stability` — `−sign(zeta)`. Needs a sonic, ~98 % correct.
 
 Two cautions the notebook demonstrates. **Validate the housing channel against an

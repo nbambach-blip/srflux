@@ -228,3 +228,46 @@ def test_nse_of_the_mean_prediction_is_zero():
     F = np.full(H.size, H.mean())
     from srflux.flux import scores
     assert scores(F, H, 1.0)["nse"] == pytest.approx(0.0, abs=1e-9)
+
+
+# ---------------------------------------------------------------- skewness lag matters
+def test_skewness_sign_needs_a_lag_matched_to_the_ramp():
+    """A slow ramp buried in fast noise: lag 1 samples the noise, a longer lag the ramp.
+
+    Scored over many realisations rather than one, since at lag 1 the sign is close to a coin
+    toss and any single draw can come out either way -- which is the point.
+    """
+    from srflux import sign_from_skewness
+    rng = np.random.default_rng(31)
+    hits = {1.0: 0, 20.0: 0}
+    n = 40
+    for _ in range(n):
+        v = ramp_series(n=3600, period_s=300, amplitude=1.0, rise_fraction=0.9, warm=True,
+                        noise=0.25, seed=int(rng.integers(1e6)))
+        for lag in hits:
+            hits[lag] += sign_from_skewness(v, lag_s=lag) == 1.0
+    assert hits[20.0] >= 0.9 * n            # the ramp is recovered at a matched lag
+    assert hits[1.0] <= 0.7 * n             # and largely lost at 1 s
+
+
+def test_longer_lag_raises_the_ramp_signal_above_the_noise():
+    """The mechanism behind the test above: |skewness| grows with lag on a noisy slow ramp."""
+    from srflux.preprocess import increment_skewness
+    v = ramp_series(n=3600, period_s=300, amplitude=1.0, rise_fraction=0.9, noise=0.25, seed=7)
+    assert abs(increment_skewness(v, lag=20)) > 3 * abs(increment_skewness(v, lag=1))
+
+
+def test_fit_skewness_sign_recovers_the_useful_lag():
+    from srflux import fit_skewness_sign
+    rng = np.random.default_rng(32)
+    blocks, ref = [], []
+    for i in range(40):
+        warm = i % 2 == 0
+        v = ramp_series(n=1800, period_s=300, amplitude=1.0, warm=warm,
+                        seed=int(rng.integers(1e6)))
+        blocks.append(v + rng.normal(0, 0.3, v.size))
+        ref.append(120.0 if warm else -60.0)
+    lag_s, tau, acc = fit_skewness_sign(blocks, ref, lags_s=(1, 5, 20))
+    assert acc > 0.9
+    assert lag_s > 1.0                       # the 1 s default is not the answer here
+    assert np.isfinite(tau)
