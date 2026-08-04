@@ -22,7 +22,6 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-#: Physically plausible range for an air or surface temperature block [deg C].
 TEMP_RANGE = (-40.0, 75.0)
 
 
@@ -30,12 +29,12 @@ TEMP_RANGE = (-40.0, 75.0)
 class BlockQC:
     """Outcome of :func:`prepare_block`."""
 
-    values: np.ndarray | None  #: cleaned series, or None when the block is rejected
-    n_valid: int  #: finite samples before gap filling
-    n_clipped: int  #: samples removed by the range clip
-    ok: bool  #: whether the block passed QC
+    values: np.ndarray | None
+    n_valid: int
+    n_clipped: int
+    ok: bool
 
-    def __bool__(self) -> bool:  # pragma: no cover - convenience
+    def __bool__(self) -> bool:
         return self.ok
 
 
@@ -67,7 +66,8 @@ def prepare_block(v, fs: float = 1.0, value_range=TEMP_RANGE, min_valid_frac: fl
     v : array-like
         Raw block at ``fs`` Hz.
     value_range : tuple
-        Values outside this range are treated as missing.
+        Values outside this range are treated as missing; the default ``TEMP_RANGE`` is a
+        plausible air or surface temperature span in deg C.
     min_valid_frac : float
         Minimum fraction of finite samples required, checked BEFORE gap filling so a block
         cannot be rescued by interpolating across most of itself.
@@ -91,9 +91,6 @@ def prepare_block(v, fs: float = 1.0, value_range=TEMP_RANGE, min_valid_frac: fl
 
     limit = max(1, int(round(max_gap_s * fs)))
     s = pd.Series(v)
-    # limit_area="inside" keeps interpolation between real observations; the edge fills are
-    # capped at the same limit. An unqualified ffill()/bfill() would defeat max_gap_s by
-    # extending the last good value across an arbitrarily long outage.
     filled = (s.interpolate(limit=limit, limit_area="inside")
                .ffill(limit=limit).bfill(limit=limit).to_numpy())
     if not np.isfinite(filled).all():

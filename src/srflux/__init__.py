@@ -18,7 +18,7 @@ Quick start
 >>> block = prepare_block(ramp_series(n=1800, period_s=60, amplitude=1.0, seed=1))
 >>> wl = HaarDetector(fs=1.0).detect(block.values)
 >>> va = VanAttaDetector(fs=1.0).detect(block.values)
->>> F_wl = ramp_flux(wl.amplitude, count=wl.count, z=2.0)      # W m-2, uncalibrated
+>>> F_wl = ramp_flux(wl.amplitude, count=wl.count, z=2.0)
 >>> F_va = ramp_flux(va.amplitude, period=va.period, z=2.0)
 >>> bool(F_wl > 0 and F_va > 0)
 True

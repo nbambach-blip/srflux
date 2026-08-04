@@ -9,7 +9,6 @@ from srflux.preprocess import TEMP_RANGE, increment_skewness, moving_average
 from srflux.synthetic import ramp_series
 
 
-# ---------------------------------------------------------------- flux forms
 def test_count_and_period_forms_agree_when_consistent():
     """N/block and 1/tau are the same rate, so the two forms must coincide."""
     f_count = ramp_flux(0.3, count=30, z=2.0, block_s=1800.0)
@@ -30,7 +29,6 @@ def test_flux_is_linear_in_amplitude_and_height():
     assert ramp_flux(0.2, count=30, z=4.0) == pytest.approx(2 * base)
 
 
-# ---------------------------------------------------------------- calibration
 def test_calibrate_alpha_recovers_a_known_scaling():
     rng = np.random.default_rng(0)
     F = rng.uniform(5, 60, 500)
@@ -77,7 +75,6 @@ def test_sensible_heat_applies_direction():
     assert sensible_heat(100.0, 2.0, sign=-1.0) == pytest.approx(-200.0)
 
 
-# ---------------------------------------------------------------- ET chain
 def test_daily_et_of_a_known_energy_input():
     """48 blocks of pure LE at 100 W m-2 for 24 h -> 4.32 MJ/m2 -> ~1.76 mm."""
     le = np.full(48, 100.0)
@@ -99,10 +96,9 @@ def test_et_error_from_an_alpha_error_is_bounded_by_the_h_term():
     assert et_true - et_wrong == pytest.approx(expected)
 
 
-# ---------------------------------------------------------------- QC
 def test_prepare_block_clips_out_of_range_sentinels():
     v = ramp_series(n=1800, period_s=60, amplitude=1.0) + 20.0
-    v[100:110] = -8190.0                       # a logger sentinel
+    v[100:110] = -8190.0
     block = prepare_block(v)
     assert block.ok and block.n_clipped == 10
     assert block.values.min() > TEMP_RANGE[0] and block.values.max() < TEMP_RANGE[1]
@@ -116,7 +112,7 @@ def test_prepare_block_rejects_a_mostly_missing_block():
 
 def test_prepare_block_rejects_a_long_outage():
     v = ramp_series(n=1800, period_s=60, amplitude=1.0) + 20.0
-    v[200:1000] = np.nan                       # 800 s gap, and only 55 % valid
+    v[200:1000] = np.nan
     assert not prepare_block(v).ok
 
 
@@ -132,7 +128,6 @@ def test_moving_average_keeps_the_edges():
     assert np.isfinite(moving_average(v, 21)).all()
 
 
-# ---------------------------------------------------------------- sign
 def test_skewness_separates_warm_and_cold_ramps():
     warm = ramp_series(n=3600, period_s=60, amplitude=1.0, warm=True)
     cold = ramp_series(n=3600, period_s=60, amplitude=1.0, warm=False)
@@ -149,17 +144,16 @@ def test_sign_from_skewness_needs_enough_samples():
     assert np.isnan(sign_from_skewness(np.zeros(10)))
 
 
-# ---------------------------------------------------------------- NSE catches a collapsed fit
 def test_nse_is_negative_for_a_near_zero_prediction():
     """The failure r cannot see: a prediction of ~0 whose sign follows the truth."""
     from srflux.flux import scores
     rng = np.random.default_rng(21)
-    H = np.r_[rng.uniform(50, 200, 40), rng.uniform(-80, -20, 40)]   # day then night
-    F = np.sign(H) * 1e-4                                            # right sign, no magnitude
+    H = np.r_[rng.uniform(50, 200, 40), rng.uniform(-80, -20, 40)]
+    F = np.sign(H) * 1e-4
     sc = scores(F, H, 1.0)
-    assert sc["r"] > 0.8                       # correlation is fooled
+    assert sc["r"] > 0.8
     assert sc["rmse"] == pytest.approx(np.sqrt(np.mean(H ** 2)), rel=0.01)
-    assert sc["nse"] < 0                       # NSE is not
+    assert sc["nse"] < 0
 
 
 def test_nse_is_high_for_a_good_fit():
@@ -179,7 +173,6 @@ def test_nse_of_the_mean_prediction_is_zero():
     assert scores(F, H, 1.0)["nse"] == pytest.approx(0.0, abs=1e-9)
 
 
-# ---------------------------------------------------------------- skewness lag matters
 def test_skewness_sign_needs_a_lag_matched_to_the_ramp():
     """A slow ramp buried in fast noise: lag 1 samples the noise, a longer lag the ramp.
 
@@ -195,8 +188,8 @@ def test_skewness_sign_needs_a_lag_matched_to_the_ramp():
                         noise=0.25, seed=int(rng.integers(1e6)))
         for lag in hits:
             hits[lag] += sign_from_skewness(v, lag_s=lag) == 1.0
-    assert hits[20.0] >= 0.9 * n            # the ramp is recovered at a matched lag
-    assert hits[1.0] <= 0.7 * n             # and largely lost at 1 s
+    assert hits[20.0] >= 0.9 * n
+    assert hits[1.0] <= 0.7 * n
 
 
 def test_longer_lag_raises_the_ramp_signal_above_the_noise():
@@ -218,5 +211,5 @@ def test_fit_skewness_sign_recovers_the_useful_lag():
         ref.append(120.0 if warm else -60.0)
     lag_s, tau, acc = fit_skewness_sign(blocks, ref, lags_s=(1, 5, 20))
     assert acc > 0.9
-    assert lag_s > 1.0                       # the 1 s default is not the answer here
+    assert lag_s > 1.0
     assert np.isfinite(tau)

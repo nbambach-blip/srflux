@@ -27,7 +27,6 @@ import numpy as np
 from ..preprocess import detrend
 from .base import RampStats
 
-#: Defaults from the wavelet scale/shape sweep (see module docstring).
 HAAR_SCALE_S = 32.0
 HAAR_K = 0.75
 HAAR_DEDUP_S = 15.0

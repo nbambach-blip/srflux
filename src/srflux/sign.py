@@ -21,7 +21,6 @@ import numpy as np
 
 from .preprocess import increment_skewness
 
-#: Default flip threshold. Fit it per site and channel; this is only a starting point.
 SKEW_TAU = 0.0
 
 

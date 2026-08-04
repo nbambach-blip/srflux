@@ -28,8 +28,6 @@ import numpy as np
 
 from .base import RampStats
 
-#: Ceiling of the Chen lag search [s]. Surface ramps need tens of seconds; beyond ~2 min
-#: the increments stop being a ramp signal and start being the diurnal trend.
 RMAX_S = 120.0
 
 
@@ -72,7 +70,10 @@ def solve_cubic(x: np.ndarray, r: int) -> tuple[float, float]:
 
 
 def chen_lag(x: np.ndarray, fs: float = 1.0, rmax_s: float = RMAX_S) -> int:
-    """Chen et al. (1997a) optimal lag: first global maximum of |S3(r)|/r."""
+    """Chen et al. (1997a) optimal lag: first global maximum of |S3(r)|/r.
+
+    ``rmax_s`` bounds the search in seconds.
+    """
     n = len(x)
     rmax = min(int(rmax_s * fs), n // 4)
     if rmax < 1:
@@ -83,7 +84,7 @@ def chen_lag(x: np.ndarray, fs: float = 1.0, rmax_s: float = RMAX_S) -> int:
         metric[r] = abs(float((inc ** 3).mean())) / r
     if not np.isfinite(metric[1:]).any():
         return 0
-    return 1 + int(np.argmax(metric[1:]))       # argmax returns the FIRST maximum
+    return 1 + int(np.argmax(metric[1:]))
 
 
 class VanAttaDetector:
@@ -112,7 +113,8 @@ class VanAttaDetector:
 
         In this mode ``count`` is not meaningful and is reported as 1.
     rmax_s : float
-        Ceiling of the Chen lag search [s].
+        Ceiling of the Chen lag search [s]. Surface ramps need tens of seconds; beyond about
+        two minutes the increments stop being a ramp signal and become the diurnal trend.
 
     Examples
     --------
@@ -153,8 +155,6 @@ class VanAttaDetector:
                  "period_mode": self.period_mode}
 
         if self.period_mode == "unit":
-            # tau is discarded, not estimated: the amplitude alone carries the flux and the
-            # duration factor is absorbed by alpha. Report the solved tau for diagnostics.
             extra["tau_fitted"] = tau_samples / self.fs if np.isfinite(tau_samples) else float("nan")
             return RampStats(1, abs(A), 1.0, self.name, extra)
 

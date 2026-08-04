@@ -17,6 +17,10 @@ is identifiable from data. For an AIR temperature it is the measurement height; 
 radiometric SURFACE temperature the renewed volume is the canopy layer, so canopy height is
 the physical choice. Two studies that pick differently cannot compare alphas -- compare
 ``alpha*z`` instead.
+
+Module constants: ``CP_AIR`` specific heat of air at constant pressure [J kg-1 K-1],
+``RHO_AIR`` default air density [kg m-3], ``LAMBDA_V`` latent heat of vaporisation [J kg-1],
+``BLOCK_S`` default averaging period [s].
 """
 from __future__ import annotations
 
@@ -24,10 +28,10 @@ from dataclasses import dataclass
 
 import numpy as np
 
-CP_AIR = 1005.0  #: specific heat of air at constant pressure [J kg-1 K-1]
-RHO_AIR = 1.19  #: default air density [kg m-3]
-LAMBDA_V = 2.45e6  #: latent heat of vaporisation [J kg-1]
-BLOCK_S = 1800.0  #: default averaging period [s]
+CP_AIR = 1005.0
+RHO_AIR = 1.19
+LAMBDA_V = 2.45e6
+BLOCK_S = 1800.0
 
 
 def ramp_flux(amplitude, count=None, period=None, z: float = 1.0, rho: float = RHO_AIR,
@@ -87,8 +91,8 @@ def scores(F, reference, alpha: float) -> dict:
     Examples
     --------
     >>> import numpy as np
-    >>> H = np.r_[np.full(10, 150.0), np.full(10, -50.0)]     # day, then night
-    >>> F = np.sign(H) * 1e-4                                 # right sign, no magnitude
+    >>> H = np.r_[np.full(10, 150.0), np.full(10, -50.0)]
+    >>> F = np.sign(H) * 1e-4
     >>> sc = scores(F, H, 1.0)
     >>> bool(sc["r"] > 0.99), bool(sc["nse"] < 0)
     (True, True)

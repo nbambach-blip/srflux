@@ -7,7 +7,6 @@ from srflux.detectors.vanatta import solve_cubic
 from srflux.synthetic import ramp_series, step_series
 
 
-# ---------------------------------------------------------------- Haar / SR-WL
 def test_haar_kernel_normalised():
     """Convolving a unit step returns a coefficient of unit magnitude."""
     k = haar_kernel(32, fs=1.0)
@@ -23,7 +22,7 @@ def test_haar_recovers_step_height():
     res = HaarDetector(fs=1.0).detect(v)
     assert res.valid
     assert res.amplitude == pytest.approx(2.0, rel=0.15)
-    assert res.count == pytest.approx(1800 / 100, abs=2)     # one front per half-period
+    assert res.count == pytest.approx(1800 / 100, abs=2)
 
 
 def test_haar_count_tracks_ramp_rate():
@@ -68,12 +67,11 @@ def test_haar_handles_higher_sampling_rate():
     assert r4.count == pytest.approx(r1.count, rel=0.2)
 
 
-# ---------------------------------------------------------------- Van Atta / SR-VA
 def test_vanatta_recovers_synthetic_amplitude():
     v = ramp_series(n=3600, period_s=60, amplitude=1.0, rise_fraction=0.9)
     res = VanAttaDetector(fs=1.0).detect(v)
     assert res.valid
-    assert res.amplitude == pytest.approx(1.0, rel=0.5)      # cubic on an ideal sawtooth
+    assert res.amplitude == pytest.approx(1.0, rel=0.5)
 
 
 def test_vanatta_amplitude_scales_linearly():
@@ -112,7 +110,6 @@ def test_solve_cubic_rejects_impossible_lag():
     assert np.isnan(solve_cubic(x, len(x))[0])
 
 
-# ---------------------------------------------------------------- both
 @pytest.mark.parametrize("detector", [HaarDetector(fs=1.0), VanAttaDetector(fs=1.0)])
 def test_detectors_share_the_result_contract(detector):
     res = detector.detect(ramp_series(n=1800, period_s=60, amplitude=1.0, seed=5))
@@ -123,13 +120,12 @@ def test_detectors_share_the_result_contract(detector):
 @pytest.mark.parametrize("detector", [HaarDetector(fs=1.0), VanAttaDetector(fs=1.0)])
 def test_detectors_accept_a_prepared_block(detector):
     raw = ramp_series(n=1800, period_s=60, amplitude=1.0, noise=0.02, seed=2)
-    raw[500:520] = np.nan                       # a short gap the QC should interpolate
+    raw[500:520] = np.nan
     block = prepare_block(raw)
     assert block.ok
     assert detector.detect(block.values).valid
 
 
-# ---------------------------------------------------------------- unit-period Van Atta
 def test_unit_period_reports_amplitude_only():
     """period_mode='unit' discards tau: the period is 1 by definition, A is unchanged."""
     v = ramp_series(n=3600, period_s=60, amplitude=1.0)
@@ -151,12 +147,12 @@ def test_unit_period_keeps_the_fitted_tau_for_diagnostics():
 def test_unit_period_survives_an_unusable_tau():
     """The point of the mode: a block whose tau is garbage still yields an amplitude."""
     rng = np.random.default_rng(11)
-    v = rng.normal(0, 0.05, 1800)                 # noise, no ramp structure
+    v = rng.normal(0, 0.05, 1800)
     fitted = VanAttaDetector(fs=1.0, lag=4.0).detect(v)
     unit = VanAttaDetector(fs=1.0, lag=4.0, period_mode="unit").detect(v)
     assert unit.valid or not np.isfinite(unit.amplitude)
     if not fitted.valid:
-        assert unit.valid                          # unit mode recovers what fitted drops
+        assert unit.valid
 
 
 def test_unit_period_flux_is_amplitude_scaled():

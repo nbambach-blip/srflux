@@ -14,10 +14,10 @@ from srflux import (HaarDetector, VanAttaDetector, calibrate_alpha, daily_et,
                     sensible_heat, sign_from_stability)
 from srflux.synthetic import ramp_series
 
-FS = 1.0            # Hz
-BLOCK_S = 1800.0    # 30-min blocks
-CANOPY_H = 2.0      # m -- length scale for a SURFACE (skin) temperature
-TRUE_ALPHA = 3.0    # what we will try to recover
+FS = 1.0
+BLOCK_S = 1800.0
+CANOPY_H = 2.0
+TRUE_ALPHA = 3.0
 
 
 def synthetic_day(n_blocks: int = 24, seed: int = 0):
@@ -27,7 +27,6 @@ def synthetic_day(n_blocks: int = 24, seed: int = 0):
     H_true = 250 * np.sin(np.pi * (hours - 6) / 12) ** 2 + rng.normal(0, 12, n_blocks)
     blocks, refs = [], []
     for H in H_true:
-        # bigger flux -> bigger ramps, plus block-to-block scatter the detector must survive
         amp = 0.05 + 0.004 * max(H, 0) * rng.uniform(0.85, 1.15)
         period = 60.0
         v = 20.0 + ramp_series(int(BLOCK_S * FS), FS, period, amp, noise=0.02,
@@ -54,7 +53,6 @@ def main() -> None:
             if not res.valid:
                 F.append(np.nan)
                 continue
-            # count form for the front picker, period form for the structure-function fit
             F.append(ramp_flux(res.amplitude, count=res.count, z=CANOPY_H, block_s=BLOCK_S)
                      if det.name == "haar"
                      else ramp_flux(res.amplitude, period=res.period, z=CANOPY_H))
@@ -65,7 +63,6 @@ def main() -> None:
         print(f"{label:>18}:  alpha = {fit.alpha:6.2f}   r = {fit.r:4.2f}   "
               f"RMSE = {fit.rmse:5.1f} W/m2   n = {fit.n}")
 
-        # energy balance -> ET, with the direction taken from stability (all daytime here)
         zeta = np.full_like(H_ref, -0.5)
         H_sr = sensible_heat(F, fit.alpha, sign=sign_from_stability(zeta))
         Rn, G = np.full_like(H_ref, 600.0), np.full_like(H_ref, 70.0)
@@ -74,7 +71,6 @@ def main() -> None:
         print(f"{'':>18}   daily ET = {et:4.2f} mm  (reference {et_ref:4.2f} mm, "
               f"error {et - et_ref:+.2f})")
 
-    # Sensitivity of daily ET to a 50 % error in alpha.
     F_wl = fluxes["haar"]
     a_local = calibrate_alpha(F_wl, H_ref)
     Rn, G = np.full_like(H_ref, 600.0), np.full_like(H_ref, 70.0)

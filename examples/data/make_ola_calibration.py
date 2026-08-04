@@ -55,10 +55,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 WIN_START, WIN_END = pd.Timestamp("2023-05-01"), pd.Timestamp("2023-05-15")
 EXCLUDE_DAY = pd.Timestamp("2023-05-11")
 FS, BLOCK_S = 1.0, 1800.0
-Z = {"FWT": 10.5, "IRT": 5.5}          # sonic height / canopy height
-A_MAX_K = 3.0                          # reject implausible ramp amplitudes (spiking sensor)
-VA_LAG_S, VA_MODE = "chen", "unit"   # lag chosen on the calibration window
-SIGN_LAGS_S = (1, 2, 3, 4, 6, 8, 10, 15, 20, 30)   # candidate increment lags for the sign
+Z = {"FWT": 10.5, "IRT": 5.5}
+A_MAX_K = 3.0
+VA_LAG_S, VA_MODE = "chen", "unit"
+SIGN_LAGS_S = (1, 2, 3, 4, 6, 8, 10, 15, 20, 30)
 SRC = {"FW": "FWT", "T_CANOPY": "IRT"}
 
 
@@ -171,7 +171,6 @@ def main() -> None:
                       f"RMSE {rmse:5.1f}  n {len(s):4d}"
                       + (f"  dropped {dropped}" if dropped else ""))
 
-    # ---- flux direction: choose (lag, tau) per channel on this window, scored by NSE ----
     out["sign"] = {}
     d = d.assign(regime=np.where(d.NETRAD_v3_Wm2 > 50, "unstable_day",
                         np.where(d.NETRAD_v3_Wm2 < -20, "stable_night",
