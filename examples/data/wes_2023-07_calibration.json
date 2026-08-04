@@ -1,0 +1,109 @@
+{
+  "site": "WES_002 (almond orchard)",
+  "fit_period": "2023-07-01 to 2023-07-31",
+  "excluded_day": "2023-07-06",
+  "block_minutes": 30,
+  "heights_m": {
+    "FWT": 7.5,
+    "FWT2": 7.5,
+    "IRT": 3.5
+  },
+  "va_lag_s": 4.0,
+  "va_period_mode": "unit",
+  "regimes": {
+    "unstable_day": "NETRAD > 50 W m-2 and H > 0, sign +1",
+    "stable_night": "NETRAD < -20 W m-2 and H < 0, sign -1"
+  },
+  "note": "alpha fitted through the origin on unsigned ramp flux against |H|; apply the regime sign separately",
+  "qc": "blocks with Haar amplitude above {'FWT': 3.0, 'FWT2': 3.0, 'IRT': 3.0} K rejected as sensor spikes; both fine wires are healthy in this month, unlike 2025-2026 where FWT fails",
+  "coefficients": {
+    "unstable_day": {
+      "WL_FWT": {
+        "alpha": 0.6398,
+        "n": 378,
+        "r": 0.898,
+        "rmse_Wm2": 29.9,
+        "n_days": 30
+      },
+      "WL_FWT2": {
+        "alpha": 0.6601,
+        "n": 378,
+        "r": 0.907,
+        "rmse_Wm2": 29.0,
+        "n_days": 30
+      },
+      "WL_IRT": {
+        "alpha": 2.6993,
+        "n": 378,
+        "r": 0.649,
+        "rmse_Wm2": 44.7,
+        "n_days": 30
+      },
+      "VA_FWT": {
+        "alpha": 0.0108,
+        "n": 378,
+        "r": 0.685,
+        "rmse_Wm2": 42.4,
+        "n_days": 30
+      },
+      "VA_FWT2": {
+        "alpha": 0.0108,
+        "n": 378,
+        "r": 0.659,
+        "rmse_Wm2": 43.9,
+        "n_days": 30
+      },
+      "VA_IRT": {
+        "alpha": 0.0547,
+        "n": 378,
+        "r": 0.325,
+        "rmse_Wm2": 65.4,
+        "n_days": 30
+      }
+    },
+    "stable_night": {
+      "WL_FWT": {
+        "alpha": 0.0997,
+        "n": 346,
+        "r": 0.214,
+        "rmse_Wm2": 13.5,
+        "n_days": 30
+      },
+      "WL_FWT2": {
+        "alpha": 0.1085,
+        "n": 346,
+        "r": 0.273,
+        "rmse_Wm2": 13.3,
+        "n_days": 30
+      },
+      "WL_IRT": {
+        "alpha": 1.5449,
+        "n": 346,
+        "r": 0.578,
+        "rmse_Wm2": 11.5,
+        "n_days": 30
+      },
+      "VA_FWT": {
+        "alpha": 0.0007,
+        "n": 346,
+        "r": -0.139,
+        "rmse_Wm2": 16.2,
+        "n_days": 30
+      },
+      "VA_FWT2": {
+        "alpha": 0.0008,
+        "n": 346,
+        "r": -0.106,
+        "rmse_Wm2": 15.9,
+        "n_days": 30
+      },
+      "VA_IRT": {
+        "alpha": 0.0101,
+        "n": 346,
+        "r": 0.081,
+        "rmse_Wm2": 16.2,
+        "n_days": 30
+      }
+    }
+  }
+}

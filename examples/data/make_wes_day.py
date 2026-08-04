@@ -4,24 +4,28 @@
 Kept in the repo so the sample is reproducible, but it only runs where the source archive
 is mounted -- it is not needed to use the notebook.
 
-The day was chosen for a COMPLETE eddy-covariance record across all 48 blocks, day and
-night -- only six days in 2025-2026 qualify, four of them consecutive in May 2026. Its
-nights are strongly advective (H about -115 W m-2 downward with LE still positive), which
-sits in the bottom 5 % of May 2026 nights: a demanding case for surface renewal, not a
-typical one.
+The day was chosen as a TRADITIONAL, non-advective case: upward sensible heat by day
+(median +140 W m-2), a small downward flux at night (median -4 W m-2), Bowen ratio 0.53 and
+energy-balance closure 1.04, with 47 of 48 blocks complete. Screening the whole 2023-2026
+record for days that are both near-complete and non-advective leaves only two candidates,
+and this is the better of them.
 
-Both fine wires are exported. FW and FW2 agree on this day, but FW degrades from
-2026-05-24 onward (ramp amplitude rising from ~0.4 K to 8.8 K while FW2 stays at ~0.3 K),
-so the notebook uses FW2 as its air channel and the month calibration excludes the bad FW
-blocks.
+Two caveats that come with it. Its nights are CALM (u* about 0.05 m/s), the regime in which
+eddy covariance is least reliable -- the flip side of the advective nights, which have
+trustworthy EC but atypical physics. And the IRT housing thermistor reads about 3.9 K below
+the fine wires in 2023, before the step change in 2024, so SBT is not a usable air proxy on
+this day; the notebook uses the fine wire FW2 for that role and says so.
+
+Both fine wires are exported. They agree closely here; FW degrades badly later in the
+record (2025-2026), which is why FW2 is the notebook's air channel throughout.
 
 Source (not public):
   cache/wes_002_irt.parquet                  1 Hz IRT/fine-wire cache
   output/wes_002/wes_002_fluxes_2023-2026.csv  30-min processed eddy-covariance fluxes
 
 Writes:
-  wes_2026-05-17_1hz.csv.gz    TIMESTAMP, FWT, FWT2, IRT, SBT  (86,400 rows)
-  wes_2026-05-17_flux30.csv    TIMESTAMP, NETRAD, G, H, LE   (48 rows)
+  wes_2023-07-06_1hz.csv.gz    TIMESTAMP, FWT, FWT2, IRT, SBT  (86,400 rows)
+  wes_2023-07-06_flux30.csv    TIMESTAMP, NETRAD, G, H, LE   (48 rows)
 """
 from __future__ import annotations
 
@@ -31,7 +35,7 @@ import pandas as pd
 import pyarrow.parquet as pq
 
 REPO = "/Users/nbambach/Library/CloudStorage/Box-Box/ec_pipeline"
-DAY = pd.Timestamp("2026-05-17")
+DAY = pd.Timestamp("2023-07-06")
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 

@@ -27,7 +27,7 @@ Source (not public):
   cache/wes_002_irt.parquet                     1 Hz IRT / fine-wire cache
   output/wes_002/wes_002_fluxes_2023-2026.csv   30-min processed eddy-covariance fluxes
 
-Writes: wes_2026-05_calibration.json
+Writes: wes_2023-07_calibration.json
 """
 from __future__ import annotations
 
@@ -45,8 +45,8 @@ from srflux import (HaarDetector, VanAttaDetector, calibrate_alpha, prepare_bloc
 
 REPO = "/Users/nbambach/Library/CloudStorage/Box-Box/ec_pipeline"
 HERE = os.path.dirname(os.path.abspath(__file__))
-MONTH_START, MONTH_END = pd.Timestamp("2026-05-01"), pd.Timestamp("2026-06-01")
-EXCLUDE_DAY = pd.Timestamp("2026-05-17")          # the day the notebook publishes
+MONTH_START, MONTH_END = pd.Timestamp("2023-07-01"), pd.Timestamp("2023-08-01")
+EXCLUDE_DAY = pd.Timestamp("2023-07-06")          # the day the notebook publishes
 FS, BLOCK_S = 1.0, 1800.0
 Z = {"FWT": 7.5, "FWT2": 7.5, "IRT": 3.5}         # measurement height / canopy height
 A_MAX_K = {"FWT": 3.0, "FWT2": 3.0, "IRT": 3.0}   # reject physically impossible ramp amplitudes
@@ -116,7 +116,7 @@ def main() -> None:
         "note": ("alpha fitted through the origin on unsigned ramp flux against |H|; "
                  "apply the regime sign separately"),
         "qc": (f"blocks with Haar amplitude above {A_MAX_K} K rejected as sensor spikes; "
-               "the FWT fine wire degrades from 2026-05-24 and is largely removed by this"),
+               "both fine wires are healthy in this month, unlike 2025-2026 where FWT fails"),
         "coefficients": {},
     }
     print(f"month blocks after excluding {EXCLUDE_DAY.date()}: {len(d)}")
@@ -140,7 +140,7 @@ def main() -> None:
                 print(f"  {rname:13s} {key:7s} alpha {a:7.3f}  r {r:+.2f}  "
                       f"RMSE {rmse:5.1f}  n {len(s):4d} ({out['coefficients'][rname][key]['n_days']} days)")
 
-    p = os.path.join(HERE, "wes_2026-05_calibration.json")
+    p = os.path.join(HERE, "wes_2023-07_calibration.json")
     with open(p, "w") as fh:
         json.dump(out, fh, indent=2)
     print(f"\nwrote {p}")
