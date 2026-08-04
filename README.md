@@ -80,20 +80,20 @@ air and ≈ 65 s on surface series.
 
 **On a skin temperature, also drop the period.** `period_mode="unit"` sets τ = 1 and uses the
 amplitude alone, `F = ρ·cp·z·A`, folding the ramp duration into α. The fitted τ on a 1 Hz IRT
-is simply too noisy to divide by — on the sample day it ranged 15–324 s across blocks, and
-the classical `A/τ` had no skill at all (r = −0.07). Two changes are needed together, and
-neither works alone:
+swings by more than an order of magnitude between blocks (15–324 s on one orchard day), so
+dividing by it adds noise rather than information. Two days from the same record:
 
-| SR-VA on canopy skin | r vs tower |
-|---|---|
-| classical `A/τ`, Chen lag | −0.07 |
-| amplitude only, Chen lag | +0.01 |
-| **amplitude only, fixed 15 s lag** | **+0.59** |
+| SR-VA on canopy skin | 9 Jul 2025 | 24 Jun 2023 |
+|---|---|---|
+| classical `A/τ`, Chen lag | +0.69 | **−0.07** |
+| amplitude only, Chen lag | +0.70 | +0.01 |
+| amplitude only, fixed short lag | **+0.78** (2 s) | **+0.59** (15 s) |
 
-The Chen criterion optimises `|S3(r)|/r`, which is the right target for estimating a period
-and the wrong one once you have decided to discard it. With τ dropped, pick a fixed lag in
-the **4–20 s** band for skin temperature (1–2 s for air, whose fronts are far sharper).
-`examples/wes_one_day.ipynb` sweeps this on real data.
+Dropping the period was never worse than keeping it, and on the bad day it was the
+difference between failure and a usable estimate. Pair it with a **fixed** lag rather than
+the Chen criterion, which optimises `|S3(r)|/r` — the right target for estimating a period,
+the wrong one once you have decided to discard it. Sweep the lag on a few days rather than
+trusting one day's optimum; `examples/wes_one_day.ipynb` shows the sweep.
 
 ## Calibration: what `alpha` does and does not transfer across
 
@@ -138,14 +138,16 @@ vineyard; ~46,000 blocks; daily ET as the energy-balance residual):
 Neither detector's amplitude is signed usefully on its own. `srflux.sign` offers three
 sonic-free options plus one that needs a sonic:
 
-1. **`sign_from_gradient(Ts, Ta)` — the surface-air temperature difference. Start here if
-   you have an IRT.** A radiometer reports two channels: the target (canopy skin) and its own
+1. **`sign_from_gradient(Ts, Ta)` — the surface-air temperature difference. Powerful where
+   it works, but verify it per site.** A radiometer reports two channels: the target (canopy skin) and its own
    housing thermistor, which equilibrates with the *air* rather than the canopy. Their
    difference `dT = Ts − Ta` is a direct thermodynamic statement about direction — surface
    warmer than air means heat goes up — with no time-domain statistics and no second
-   instrument. Across three sites it was **80–87 % correct** with a fitted offset, and on the
-   demo day in `examples/wes_one_day.ipynb` it reached 96 % of daytime blocks and 93 %
-   including nights, where the ramp-shape conventions are weakest. `fit_gradient_offset`
+   instrument. Across three sites it was **80–87 % correct** with a fitted offset, against
+   61–78 % for the ramp skewness of the same skin temperature. **But it fails at an
+   irrigated orchard**: in `examples/wes_one_day.ipynb` the transpiring canopy sits ~1 K
+   below air all day while the tower measures an upward flux, and dT is right in only 25 %
+   of daytime blocks. The radiometer and the flux footprint are not seeing the same surface. `fit_gradient_offset`
    calibrates the flip threshold (observed −0.4 to −2.7 K, since the housing is shaded or
    radiatively loaded depending on the mount); `stability_from_gradient` turns the same dT
    into a coarse stability class (AUC 0.72–0.85 against ζ < −0.1).
@@ -158,10 +160,13 @@ sonic-free options plus one that needs a sonic:
    because skin temperature decouples from the flux direction.
 3. `sign_from_stability` — `−sign(zeta)`. Needs a sonic, ~98 % correct.
 
-A caution the notebook demonstrates: *which* air reference you use matters as much as the
-method. On the sample day the fine-wire thermocouple at 7.5 m read 4.5 K warmer than the IRT
-housing, and referencing dT to the fine wire instead of the housing dropped the sign accuracy
-from 96 % to 30 %.
+Two cautions the notebook demonstrates. **Validate the housing channel against an
+independent air measurement first**: on this instrument in 2023 the housing read ~10 K below
+two fine wires that agreed with each other to 0.03 K, which biased dT positive and made the
+convention look 96 % correct for the wrong reason; a step change in 2024 brought it within
+0.15 K, and the apparent skill vanished. And **check any sign convention against a reference
+before relying on it** — the ranking of these methods reversed between two days of the same
+record.
 
 ## Layout
 

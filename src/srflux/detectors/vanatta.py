@@ -105,13 +105,16 @@ class VanAttaDetector:
         calibration coefficient.
 
         Use ``"unit"`` when the period is not estimable from the data -- above all on a
-        1 Hz radiometric SKIN temperature, where the fitted tau is so noisy that A/tau
-        scatters worse than A on its own. On the WES sample day the per-block tau ranged
-        15-324 s and A/tau had no skill at all against the tower (r = -0.07), while the
-        amplitude alone at a fixed 15 s lag reached r = 0.59. Pair it with a fixed lag of
-        roughly 4-20 s: the Chen criterion optimises |S3(r)|/r, which is the right target
-        for a period estimate and the wrong one when the period is being discarded (it gave
-        r = 0.01 on the same data).
+        1 Hz radiometric SKIN temperature, where the fitted tau swings by more than an order
+        of magnitude between blocks (15-324 s on one orchard day) and the division adds
+        noise instead of information. Dropping it has never been worse than keeping it on
+        the days tested, and on a day where A/tau collapsed outright (r = -0.07 against the
+        tower) the amplitude alone at a fixed 15 s lag recovered r = 0.59.
+
+        Pair it with a FIXED lag rather than the Chen criterion, which optimises |S3(r)|/r --
+        the right target for estimating a period and the wrong one once the period is being
+        discarded. Sweep the lag on a few days rather than trusting one day's optimum;
+        skin channels have favoured 2-20 s and air channels 1-2 s in the records tested.
 
         In this mode ``count`` is not meaningful and is reported as 1.
     rmax_s : float

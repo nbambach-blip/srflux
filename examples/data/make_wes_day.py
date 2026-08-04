@@ -4,13 +4,18 @@
 Kept in the repo so the sample is reproducible, but it only runs where the source archive
 is mounted -- it is not needed to use the notebook.
 
+The day was chosen from summer 2025 for complete flux coverage and strong SR-WL skill on
+the canopy-skin channel. Selecting a day by the statistic the notebook then reports
+inflates it: treat the numbers as a demonstration of the workflow, not as a site
+validation.
+
 Source (not public):
   cache/wes_002_irt.parquet                  1 Hz IRT/fine-wire cache
   output/wes_002/wes_002_fluxes_2023-2026.csv  30-min processed eddy-covariance fluxes
 
 Writes:
-  wes_2023-06-24_1hz.csv.gz    TIMESTAMP, FWT, IRT, SBT      (86,400 rows)
-  wes_2023-06-24_flux30.csv    TIMESTAMP, NETRAD, G, H, LE   (48 rows)
+  wes_2025-07-09_1hz.csv.gz    TIMESTAMP, FWT, IRT, SBT      (86,400 rows)
+  wes_2025-07-09_flux30.csv    TIMESTAMP, NETRAD, G, H, LE   (48 rows)
 """
 from __future__ import annotations
 
@@ -20,7 +25,7 @@ import pandas as pd
 import pyarrow.parquet as pq
 
 REPO = "/Users/nbambach/Library/CloudStorage/Box-Box/ec_pipeline"
-DAY = pd.Timestamp("2023-06-24")
+DAY = pd.Timestamp("2025-07-09")
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
