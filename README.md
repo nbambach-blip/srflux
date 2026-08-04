@@ -30,10 +30,14 @@ H_sr = fit.apply(F_wl_all_blocks)
 Two runnable examples:
 
 - **`examples/quickstart.py`** — the whole chain on synthetic data, no field data needed.
-- **`examples/wes_one_day.ipynb`** — one real day from an almond orchard (1 Hz fine-wire,
-  canopy-skin and sensor-body temperature, plus the tower's Rn/G/H/LE), with timeseries, ramp
-  anatomy, regression against the tower, the radiometer-only flux direction, and the
-  energy-balance route to ET. The data ships in `examples/data/` (692 KB).
+- **`examples/wes_one_day.ipynb`** — one real day from an almond orchard, 17 May 2026, with a
+  **complete 24-hour eddy-covariance record** (only six such days exist in 2025–2026). Two
+  fine wires, the IRT target and its housing thermistor at 1 Hz, plus the tower's Rn/G/H/LE.
+  Crucially the calibration is **not fitted on the day**: α comes from the other 30 days of
+  May 2026 (`wes_2026-05_calibration.json`, regime-specific), so every number is
+  out-of-sample. Covers ramp anatomy, the uncalibrated flux, the month-calibrated flux day
+  and night, the Van Atta lag sweep, flux direction, and the energy-balance route to ET.
+  Data ships in `examples/data/` (~850 KB).
 
 **Timestamp convention.** Throughout this package a timestamp labels the **start** of its
 averaging period: a block stamped 12:00 covers 12:00–12:30. `pd.Grouper(freq="30min")` is
@@ -83,11 +87,11 @@ amplitude alone, `F = ρ·cp·z·A`, folding the ramp duration into α. The fitt
 swings by more than an order of magnitude between blocks (15–324 s on one orchard day), so
 dividing by it adds noise rather than information. Two days from the same record:
 
-| SR-VA on canopy skin | 9 Jul 2025 | 24 Jun 2023 |
-|---|---|---|
-| classical `A/τ`, Chen lag | +0.69 | **−0.07** |
-| amplitude only, Chen lag | +0.70 | +0.01 |
-| amplitude only, fixed short lag | **+0.78** (2 s) | **+0.59** (15 s) |
+| SR-VA on canopy skin | 17 May 2026 | 9 Jul 2025 | 24 Jun 2023 |
+|---|---|---|---|
+| classical `A/τ`, Chen lag | +0.59 | +0.69 | **−0.07** |
+| amplitude only, Chen lag | +0.71 | +0.70 | +0.01 |
+| amplitude only, fixed short lag | **+0.78** (4 s) | **+0.78** (2 s) | **+0.59** (15 s) |
 
 Dropping the period was never worse than keeping it, and on the bad day it was the
 difference between failure and a usable estimate. Pair it with a **fixed** lag rather than
@@ -103,9 +107,19 @@ SR-WL:  F = rho·cp·z · N·A / block        SR-VA:  F = rho·cp·z · A / tau
 ```
 
 `alpha` is fitted through the origin, `alpha = Σ(F·H)/Σ(F²)`, against a reference flux —
-ideally energy-balance-closure-corrected eddy covariance — on a **single well-defined
-regime** (convective daytime blocks of one sign), so the ramp direction never enters the
-calibration.
+ideally energy-balance-closure-corrected eddy covariance — **per regime**, so the ramp
+direction never enters the calibration and a coefficient fitted on daytime convection is not
+applied to the weak nocturnal flux. `examples/data/make_wes_calibration.py` shows the
+pattern: fit on a month, publish only the coefficients, apply them elsewhere. Two warnings
+from doing it that way:
+
+- **The applied detector configuration must match the calibrated one.** Read the lag and
+  period mode from the calibration file rather than setting them at the call site; applying
+  coefficients fitted with one SR-VA configuration to fluxes computed with another gave an α
+  ratio ~50× wrong before it was caught.
+- **A month is not enough for an extreme day.** On the notebook's advective day, the day's
+  own α is 1.5–3.7× the month value and using the month coefficient roughly doubles the
+  half-hourly RMSE.
 
 Findings from a six-site orchard and vineyard study that used this code (three almond, three
 vineyard; ~46,000 blocks; daily ET as the energy-balance residual):
@@ -146,8 +160,8 @@ sonic-free options plus one that needs a sonic:
    instrument. Across three sites it was **80–87 % correct** with a fitted offset, against
    61–78 % for the ramp skewness of the same skin temperature. **But it fails at an
    irrigated orchard**: in `examples/wes_one_day.ipynb` the transpiring canopy sits ~1 K
-   below air all day while the tower measures an upward flux, and dT is right in only 25 %
-   of daytime blocks. The radiometer and the flux footprint are not seeing the same surface. `fit_gradient_offset`
+   below air all day while the tower measures an upward flux, and dT is right in 17–25 % of
+   daytime blocks on the days tested. The radiometer and the flux footprint are not seeing the same surface. `fit_gradient_offset`
    calibrates the flip threshold (observed −0.4 to −2.7 K, since the housing is shaded or
    radiatively loaded depending on the mount); `stability_from_gradient` turns the same dT
    into a coarse stability class (AUC 0.72–0.85 against ζ < −0.1).

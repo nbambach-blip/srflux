@@ -4,18 +4,24 @@
 Kept in the repo so the sample is reproducible, but it only runs where the source archive
 is mounted -- it is not needed to use the notebook.
 
-The day was chosen from summer 2025 for complete flux coverage and strong SR-WL skill on
-the canopy-skin channel. Selecting a day by the statistic the notebook then reports
-inflates it: treat the numbers as a demonstration of the workflow, not as a site
-validation.
+The day was chosen for a COMPLETE eddy-covariance record across all 48 blocks, day and
+night -- only six days in 2025-2026 qualify, four of them consecutive in May 2026. Its
+nights are strongly advective (H about -115 W m-2 downward with LE still positive), which
+sits in the bottom 5 % of May 2026 nights: a demanding case for surface renewal, not a
+typical one.
+
+Both fine wires are exported. FW and FW2 agree on this day, but FW degrades from
+2026-05-24 onward (ramp amplitude rising from ~0.4 K to 8.8 K while FW2 stays at ~0.3 K),
+so the notebook uses FW2 as its air channel and the month calibration excludes the bad FW
+blocks.
 
 Source (not public):
   cache/wes_002_irt.parquet                  1 Hz IRT/fine-wire cache
   output/wes_002/wes_002_fluxes_2023-2026.csv  30-min processed eddy-covariance fluxes
 
 Writes:
-  wes_2025-07-09_1hz.csv.gz    TIMESTAMP, FWT, IRT, SBT      (86,400 rows)
-  wes_2025-07-09_flux30.csv    TIMESTAMP, NETRAD, G, H, LE   (48 rows)
+  wes_2026-05-17_1hz.csv.gz    TIMESTAMP, FWT, FWT2, IRT, SBT  (86,400 rows)
+  wes_2026-05-17_flux30.csv    TIMESTAMP, NETRAD, G, H, LE   (48 rows)
 """
 from __future__ import annotations
 
@@ -25,7 +31,7 @@ import pandas as pd
 import pyarrow.parquet as pq
 
 REPO = "/Users/nbambach/Library/CloudStorage/Box-Box/ec_pipeline"
-DAY = pd.Timestamp("2025-07-09")
+DAY = pd.Timestamp("2026-05-17")
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -38,11 +44,12 @@ def main() -> None:
     rgs = [i for i in range(md.num_row_groups)
            if md.row_group(i).column(0).statistics.max >= DAY
            and md.row_group(i).column(0).statistics.min <= DAY + pd.Timedelta(days=1)]
-    hi = pd.concat([pf.read_row_group(i, columns=["TIMESTAMP", "FW", "T_CANOPY", "T_SI111_body"]).to_pandas()
+    hi = pd.concat([pf.read_row_group(i, columns=["TIMESTAMP", "FW", "FW2", "T_CANOPY", "T_SI111_body"]).to_pandas()
                     for i in rgs], ignore_index=True)
     hi["TIMESTAMP"] = pd.to_datetime(hi.TIMESTAMP)
     hi = hi[(hi.TIMESTAMP >= DAY) & (hi.TIMESTAMP < DAY + pd.Timedelta(days=1))]
-    hi = (hi.rename(columns={"FW": "FWT", "T_CANOPY": "IRT", "T_SI111_body": "SBT"})
+    hi = (hi.rename(columns={"FW": "FWT", "FW2": "FWT2", "T_CANOPY": "IRT",
+                             "T_SI111_body": "SBT"})
             .sort_values("TIMESTAMP").reset_index(drop=True).round(3))
     hi.to_csv(os.path.join(HERE, f"wes_{DAY.date()}_1hz.csv.gz"), index=False,
               compression="gzip")
